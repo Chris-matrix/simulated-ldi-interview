@@ -1,13 +1,17 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { generateText } from "ai"
-import { openai } from "@ai-sdk/openai"
-import { ArrowLeft, Download, Home } from "lucide-react"
+import { playlab } from "@/lib/playlab-ai"
+import playlabProvider from "@/lib/ai-config"
+import { ArrowLeft, Download, Home, Mail, Share2 } from "lucide-react"
 import Link from "next/link"
 
 interface Message {
@@ -21,12 +25,22 @@ interface InterviewData {
   transcript: Message[]
 }
 
+interface FeedbackData {
+  summary: string
+  strengths: string[]
+  improvements: string[]
+  recommendations: string[]
+  overallScore?: number
+}
+
 export default function Feedback() {
   const router = useRouter()
   const [interviewData, setInterviewData] = useState<InterviewData | null>(null)
-  const [feedback, setFeedback] = useState<any | null>(null)
+  const [feedback, setFeedback] = useState<FeedbackData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [emailAddress, setEmailAddress] = useState("")
 
   useEffect(() => {
     // Retrieve interview data from sessionStorage
@@ -59,25 +73,57 @@ export default function Feedback() {
         .map((msg) => `${msg.role === "user" ? "Student" : "Interviewee"}: ${msg.content}`)
         .join("\n\n")
 
+      // Count the number of student questions
+      const studentQuestions = data.transcript.filter(msg => msg.role === "user").length;
+      
+      // Calculate approximate interview duration (assuming average reading time)
+      const totalWords = data.transcript.reduce((count, msg) => count + msg.content.split(' ').length, 0);
+      const estimatedMinutes = Math.round(totalWords / 150); // Assuming 150 words per minute reading/speaking
+
       const { text } = await generateText({
-        model: openai("gpt-4o"),
+        model: playlab("premium"),
+        provider: playlabProvider,
         prompt: `Analyze this Life Design Interview transcript between a student and a ${data.profession} named ${data.interviewee}:
 
 ${conversationText}
 
-Provide detailed feedback on the student's interviewing skills. Include:
-1. Overall assessment (strengths and areas for improvement)
-2. Question quality (depth, relevance, open-endedness)
-3. Follow-up skills (how well they built on previous answers)
-4. Specific examples of effective questions
-5. Missed opportunities or questions they could have asked
-6. Recommendations for improvement
-7. Key insights gained from the interview
+Provide comprehensive feedback on the student's interviewing skills, including:
 
-Format the response as JSON with these fields: overallAssessment, strengths (array), areasForImprovement (array), questionQuality, followUpSkills, effectiveQuestions (array), missedOpportunities (array), recommendations (array), keyInsights (array).`,
+1. Overall assessment
+2. Strengths (list at least 3)
+3. Areas for improvement (list at least 3)
+4. Question quality analysis
+5. Follow-up skills assessment
+6. Effective questions asked (list at least 3)
+7. Missed opportunities (list at least 3)
+8. Recommendations for future interviews (list at least 3)
+9. Key insights gained from the interview (list at least 3)
+
+Format the response as JSON with these fields: 
+overallAssessment, 
+strengths (array), 
+areasForImprovement (array), 
+questionQuality, 
+followUpSkills, 
+effectiveQuestions (array), 
+missedOpportunities (array), 
+recommendations (array), 
+keyInsights (array),
+skillsDemonstrated (array),
+interviewStructure (object with opening, body, closing properties),
+careerExplorationValue (string),
+ratings (object with overall, questionDepth, activeListening, followUp, etiquette, explorationValue properties as numbers 1-10)`,
       })
 
       const feedbackData = JSON.parse(text)
+      
+      // Add interview statistics
+      feedbackData.statistics = {
+        questionCount: studentQuestions,
+        duration: estimatedMinutes,
+        averageResponseLength: Math.round(totalWords / data.transcript.length)
+      };
+      
       setFeedback(feedbackData)
       setIsLoading(false)
     } catch (err) {
@@ -87,31 +133,60 @@ Format the response as JSON with these fields: overallAssessment, strengths (arr
     }
   }
 
-  const downloadTranscript = () => {
-    if (!interviewData) return
+  // Helper function to generate the full transcript and feedback text
+  const generateFullText = () => {
+    if (!interviewData) return ""
 
     const conversationText = interviewData.transcript
-      .map((msg) => `${msg.role === "user" ? "Student" : interviewData.interviewee}: ${msg.content}`)
+      .map((msg: Message) => `${msg.role === "user" ? "Student" : interviewData.interviewee}: ${msg.content}`)
       .join("\n\n")
 
     const feedbackText = feedback
-      ? `\n\n--- FEEDBACK ---\n\n` +
+      ? `\n\n--- FEEDBACK SUMMARY ---\n\n` +
         `Overall Assessment: ${feedback.overallAssessment}\n\n` +
+        `Interview Statistics:\n` +
+        `- Questions Asked: ${feedback.statistics.questionCount}\n` +
+        `- Estimated Duration: ${feedback.statistics.duration} minutes\n` +
+        `- Average Response Length: ${feedback.statistics.averageResponseLength} words\n\n` +
+        `Performance Ratings (1-10 scale):\n` +
+        `- Overall Quality: ${feedback.ratings.overall}/10\n` +
+        `- Question Depth & Relevance: ${feedback.ratings.questionDepth}/10\n` +
+        `- Active Listening: ${feedback.ratings.activeListening}/10\n` +
+        `- Follow-up Effectiveness: ${feedback.ratings.followUp}/10\n` +
+        `- Professional Etiquette: ${feedback.ratings.etiquette}/10\n` +
+        `- Career Exploration Value: ${feedback.ratings.explorationValue}/10\n\n` +
         `Strengths:\n${feedback.strengths.map((s: string) => `- ${s}`).join("\n")}\n\n` +
         `Areas for Improvement:\n${feedback.areasForImprovement.map((a: string) => `- ${a}`).join("\n")}\n\n` +
+        `Interview Structure Analysis:\n` +
+        `- Opening: ${feedback.interviewStructure?.opening || 'Not analyzed'}\n` +
+        `- Body: ${feedback.interviewStructure?.body || 'Not analyzed'}\n` +
+        `- Closing: ${feedback.interviewStructure?.closing || 'Not analyzed'}\n\n` +
+        `Question Quality: ${feedback.questionQuality}\n\n` +
+        `Follow-Up Skills: ${feedback.followUpSkills}\n\n` +
+        `Effective Questions:\n${feedback.effectiveQuestions.map((q: string) => `- ${q}`).join("\n")}\n\n` +
+        `Missed Opportunities:\n${feedback.missedOpportunities.map((o: string) => `- ${o}`).join("\n")}\n\n` +
+        `Skills Demonstrated:\n${(feedback.skillsDemonstrated || []).map((s: string) => `- ${s}`).join("\n")}\n\n` +
+        `Career Exploration Value: ${feedback.careerExplorationValue || 'Not analyzed'}\n\n` +
         `Recommendations:\n${feedback.recommendations.map((r: string) => `- ${r}`).join("\n")}\n\n` +
-        `Key Insights:\n${feedback.keyInsights.map((i: string) => `- ${i}`).join("\n")}`
+        `Key Insights Gained:\n${feedback.keyInsights.map((i: string) => `- ${i}`).join("\n")}`
       : ""
 
-    const fullText =
-      `LIFE DESIGN INTERVIEW TRANSCRIPT\n` +
+    return (
+      `LIFE DESIGN INTERVIEW TRANSCRIPT AND FEEDBACK\n` +
       `Profession: ${interviewData.profession}\n` +
       `Interviewee: ${interviewData.interviewee}\n` +
       `Date: ${new Date().toLocaleDateString()}\n\n` +
       `--- TRANSCRIPT ---\n\n` +
       conversationText +
       feedbackText
+    )
+  }
 
+  // Download transcript and feedback as a text file
+  const downloadTranscript = () => {
+    if (!interviewData) return
+
+    const fullText = generateFullText()
     const blob = new Blob([fullText], { type: "text/plain" })
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
@@ -122,6 +197,67 @@ Format the response as JSON with these fields: overallAssessment, strengths (arr
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
   }
+  
+  // Share transcript and feedback via email
+  const shareViaEmail = async () => {
+    if (!interviewData || !emailAddress) return
+    
+    try {
+      // Create a simplified version of the feedback for the email body
+      const emailSubject = `Life Design Interview Feedback - ${interviewData.profession}`
+      
+      // Generate the full text content for the email
+      const fullText = generateFullText()
+      
+      // Use PlayLab AI to generate a personalized email message
+      const { text } = await generateText({
+        model: playlab("premium"),
+        provider: playlabProvider,
+        prompt: `Create a professional email to share interview feedback with a recipient. The email should be concise but friendly. Include the following key points:
+        - This is a Life Design Interview with a ${interviewData.profession}
+        - The feedback includes strengths, areas for improvement, and recommendations
+        - The recipient can review the full transcript and detailed feedback in the attachment
+        - End with a professional closing
+        
+        Format as plain text for an email body.`
+      })
+      
+      // In a real implementation, this would connect to an email service API
+      // For now, we'll simulate the email sending process
+      console.log(`Sending email to: ${emailAddress}`)
+      console.log(`Subject: ${emailSubject}`)
+      console.log(`Generated email content: ${text}`)
+      
+      // Create a simulated download of the email content
+      const emailContent = 
+        `To: ${emailAddress}\n` +
+        `Subject: ${emailSubject}\n\n` +
+        `${text}\n\n` +
+        `--- ATTACHMENT: Interview Transcript and Feedback ---\n\n` +
+        fullText
+      
+      const blob = new Blob([emailContent], { type: "text/plain" })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `LDI_Email_${interviewData.profession.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.txt`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      
+      // Close the modal after sending
+      setShowShareModal(false)
+      setEmailAddress("")
+      
+      // Show success message (in a real app, this would be a toast notification)
+      alert("Email content prepared successfully! In a production environment, this would be sent directly via email.")
+    } catch (err) {
+      console.error("Error sharing via email:", err)
+      alert("Failed to share via email. Please try again.")
+    }
+  }
+
 
   if (isLoading) {
     return (
@@ -191,6 +327,73 @@ Format the response as JSON with these fields: overallAssessment, strengths (arr
           <TabsContent value="feedback" className="mt-6">
             {feedback && (
               <div className="space-y-6">
+                {/* Interview Statistics */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <Card className="bg-blue-50">
+                    <CardContent className="pt-6">
+                      <div className="text-center">
+                        <div className="text-4xl font-bold text-blue-600">{feedback.statistics.questionCount}</div>
+                        <p className="text-sm text-gray-600 mt-1">Questions Asked</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="bg-green-50">
+                    <CardContent className="pt-6">
+                      <div className="text-center">
+                        <div className="text-4xl font-bold text-green-600">{feedback.statistics.duration}</div>
+                        <p className="text-sm text-gray-600 mt-1">Minutes (Estimated)</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="bg-purple-50">
+                    <CardContent className="pt-6">
+                      <div className="text-center">
+                        <div className="text-4xl font-bold text-purple-600">{feedback.statistics.averageResponseLength}</div>
+                        <p className="text-sm text-gray-600 mt-1">Avg. Words per Response</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+                
+                {/* Ratings */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Performance Ratings</CardTitle>
+                    <CardDescription>Evaluation of your interviewing skills (1-10 scale)</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {feedback.ratings && Object.entries(feedback.ratings).map(([key, value]: [string, any]) => {
+                        const label = {
+                          overall: "Overall Quality",
+                          questionDepth: "Question Depth & Relevance",
+                          activeListening: "Active Listening",
+                          followUp: "Follow-up Effectiveness",
+                          etiquette: "Professional Etiquette",
+                          explorationValue: "Career Exploration Value"
+                        }[key] || key;
+                        
+                        return (
+                          <div key={key} className="space-y-1">
+                            <div className="flex justify-between">
+                              <span className="text-sm font-medium">{label}</span>
+                              <span className="text-sm font-bold">{value}/10</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2.5">
+                              <div 
+                                className={`h-2.5 rounded-full ${value >= 8 ? 'bg-green-500' : value >= 5 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                                style={{ width: `${value * 10}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+
                 <Card>
                   <CardHeader>
                     <CardTitle>Overall Assessment</CardTitle>
@@ -227,24 +430,51 @@ Format the response as JSON with these fields: overallAssessment, strengths (arr
                     </CardContent>
                   </Card>
                 </div>
+                
+                {/* Interview Structure */}
+                {feedback.interviewStructure && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Interview Structure Analysis</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div>
+                          <h4 className="font-semibold mb-1">Opening</h4>
+                          <p>{feedback.interviewStructure.opening}</p>
+                        </div>
+                        <div>
+                          <h4 className="font-semibold mb-1">Body</h4>
+                          <p>{feedback.interviewStructure.body}</p>
+                        </div>
+                        <div>
+                          <h4 className="font-semibold mb-1">Closing</h4>
+                          <p>{feedback.interviewStructure.closing}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Question Quality</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p>{feedback.questionQuality}</p>
-                  </CardContent>
-                </Card>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Question Quality</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p>{feedback.questionQuality}</p>
+                    </CardContent>
+                  </Card>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Follow-Up Skills</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p>{feedback.followUpSkills}</p>
-                  </CardContent>
-                </Card>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Follow-Up Skills</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p>{feedback.followUpSkills}</p>
+                    </CardContent>
+                  </Card>
+                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <Card>
@@ -273,6 +503,36 @@ Format the response as JSON with these fields: overallAssessment, strengths (arr
                     </CardContent>
                   </Card>
                 </div>
+                
+                {/* Skills Demonstrated */}
+                {feedback.skillsDemonstrated && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Skills Demonstrated</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex flex-wrap gap-2">
+                        {feedback.skillsDemonstrated.map((skill: string, index: number) => (
+                          <div key={index} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
+                            {skill}
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+                
+                {/* Career Exploration Value */}
+                {feedback.careerExplorationValue && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Career Exploration Value</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p>{feedback.careerExplorationValue}</p>
+                    </CardContent>
+                  </Card>
+                )}
 
                 <Card>
                   <CardHeader>
@@ -312,7 +572,7 @@ Format the response as JSON with these fields: overallAssessment, strengths (arr
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {interviewData.transcript.map((message, index) => (
+                {interviewData.transcript.map((message: Message, index: number) => (
                   <div key={index} className="pb-4 border-b border-gray-100 last:border-0">
                     <p className="font-semibold text-sm text-gray-500 mb-1">
                       {message.role === "user" ? "Student" : interviewData.interviewee}
@@ -326,17 +586,55 @@ Format the response as JSON with these fields: overallAssessment, strengths (arr
         </Tabs>
 
         <div className="mt-8 flex flex-col sm:flex-row justify-between space-y-4 sm:space-y-0">
-          <Link href="/">
-            <Button variant="outline">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Home
+          <div className="flex space-x-4 mt-6">
+            <Link href="/">
+              <Button variant="outline">
+                <Home className="mr-2 h-4 w-4" />
+                Return to Home
+              </Button>
+            </Link>
+            <Button onClick={downloadTranscript}>
+              <Download className="mr-2 h-4 w-4" />
+              Download Transcript
             </Button>
-          </Link>
-
-          <Button onClick={downloadTranscript}>
-            <Download className="mr-2 h-4 w-4" />
-            Download Transcript & Feedback
-          </Button>
+            <Button onClick={() => setShowShareModal(true)} variant="secondary">
+              <Share2 className="mr-2 h-4 w-4" />
+              Share Feedback
+            </Button>
+          </div>
+            
+          {/* Share Dialog */}
+          <Dialog open={showShareModal} onOpenChange={setShowShareModal}>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Share Interview Feedback</DialogTitle>
+                <DialogDescription>
+                  Enter an email address to share your interview feedback and transcript.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="email" className="text-right">
+                    Email
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={emailAddress}
+                    onChange={(e: { target: { value: string } }) => setEmailAddress(e.target.value)}
+                    placeholder="recipient@example.com"
+                    className="col-span-3"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="submit" onClick={shareViaEmail} disabled={!emailAddress}>
+                  <Mail className="mr-2 h-4 w-4" />
+                  Share via Email
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     </main>
