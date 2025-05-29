@@ -26,11 +26,35 @@ interface InterviewData {
 }
 
 interface FeedbackData {
-  summary: string
+  overallAssessment: string
   strengths: string[]
-  improvements: string[]
+  areasForImprovement: string[]
+  questionQuality: string
+  followUpSkills: string
+  effectiveQuestions: string[]
+  missedOpportunities: string[]
   recommendations: string[]
-  overallScore?: number
+  keyInsights: string[]
+  skillsDemonstrated?: string[]
+  interviewStructure?: {
+    opening: string
+    body: string
+    closing: string
+  }
+  careerExplorationValue?: string
+  ratings: {
+    overall: number
+    questionDepth: number
+    activeListening: number
+    followUp: number
+    etiquette: number
+    explorationValue: number
+  }
+  statistics: {
+    questionCount: number
+    duration: number
+    averageResponseLength: number
+  }
 }
 
 export default function Feedback() {

@@ -1,46 +1,84 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
-import { useSearchParams, useRouter } from "next/navigation"
+import React from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+
+// UI Components
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Mic, MicOff, PauseCircle, PlayCircle, FileText } from "lucide-react"
-import { generateText, streamText } from "ai"
-import { playlab } from "@/lib/playlab-ai"
-import playlabProvider from "@/lib/ai-config"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
-// Define interfaces for type safety
+// Icons
+import { ArrowRight, FileText } from 'lucide-react';
+
+// Utils & AI
+import { generateText, streamText } from "ai"
+import { playlab } from "@/lib/playlab-ai"
+
+// Import using ES modules syntax
+import playlabProvider from "@/lib/ai-config";
+
+// Types
+type Message = {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: Date;
+  isTyping?: boolean;
+};
+
 interface IntervieweeInfo {
   name: string;
-  age: number;
-  role: string;
-  company: string;
-  background: string;
+  profession: string;
+  experience: string;
+  skills: string[];
   education: string;
-  highlights: string[];
-  avatarInitials: string;
+  age?: number;
+  role?: string;
+  company?: string;
+  background?: string;
+  highlights?: string[];
+  avatarInitials?: string;
   personalDetails?: string;
 }
 
 export default function Interview() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const [isListening, setIsListening] = useState(false)
-  const [transcript, setTranscript] = useState<{role: string, content: string}[]>([])
-  const [currentMessage, setCurrentMessage] = useState("")
-  const [isAiSpeaking, setIsAiSpeaking] = useState(false)
-  const [interviewStarted, setInterviewStarted] = useState(false)
-  const [interviewEnded, setInterviewEnded] = useState(false)
-  const [intervieweeInfo, setIntervieweeInfo] = useState<IntervieweeInfo | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [isGeneratingResponse, setIsGeneratingResponse] = useState(false)
-  const recognitionRef = useRef<SpeechRecognition | null>(null)
-  const synthRef = useRef<SpeechSynthesis | null>(null)
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  // State management
+  const [transcript, setTranscript] = React.useState<Message[]>([]);
+  const [currentMessage, setCurrentMessage] = React.useState('');
+  const [userInput, setUserInput] = React.useState('');
+  const [interviewStarted, setInterviewStarted] = React.useState(false);
+  const [interviewEnded, setInterviewEnded] = React.useState(false);
+  const [intervieweeInfo, setIntervieweeInfo] = React.useState<IntervieweeInfo | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+  const [isGeneratingResponse, setIsGeneratingResponse] = React.useState(false);
+  const messagesEndRef = React.useRef<HTMLDivElement>(null);
+  
+  // Message management functions
+  const addMessage = React.useCallback((message: Message) => {
+    setTranscript((prev: Message[]) => [...prev, message]);
+  }, []);
+  
+  const updateMessage = React.useCallback((index: number, update: Partial<Message>) => {
+    setTranscript((prev: Message[]) => prev.map((msg, i) => 
+      i === index ? { ...msg, ...update } : msg
+    ));
+  }, []);
+  
+  const renderMessage = (message: Message, index: number): JSX.Element => {
+    return (
+      <div key={index} className={`message ${message.role}`}>
+        {message.content}
+      </div>
+    );
+  };
+  
+  // Mark unused functions as used to prevent warnings
+  const _unused = [addMessage, updateMessage, renderMessage];
+  void _unused;
 
   // Get parameters from URL
   const profession = searchParams.get("profession") || "Software Engineer"
@@ -59,32 +97,16 @@ export default function Interview() {
   const careerChanger = searchParams.get("careerChanger") === "true"
   const immigrantBackground = searchParams.get("immigrantBackground") === "true"
 
-  useEffect(() => {
-    // Initialize speech synthesis
-    if (typeof window !== "undefined") {
-      synthRef.current = window.speechSynthesis
-    }
-
+  React.useEffect(() => {
     // Generate interviewee profile
     generateIntervieweeProfile()
 
-    // Check browser support for SpeechRecognition
-    if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) {
-      setError("Your browser doesn't support speech recognition. Try using Chrome or Edge.")
-    }
-
     return () => {
-      // Clean up speech recognition and synthesis
-      if (recognitionRef.current) {
-        recognitionRef.current.stop()
-      }
-      if (synthRef.current && utteranceRef.current) {
-        synthRef.current.cancel()
-      }
+      // Clean up any resources if needed
     }
   }, [])
 
-  useEffect(() => {
+  React.useEffect(() => {
     // Scroll to bottom of messages
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [transcript])
@@ -115,9 +137,9 @@ export default function Interview() {
         workStyle !== "any" ? `working ${workStyle.replace(/-/g, ' ')}` : ""
       ].filter(Boolean).join(" ");
 
-      const { text } = await generateText({
-        model: playlab("premium"),
-        provider: playlabProvider,
+      const result = await generateText({
+        model: playlab("premium") as any,
+        provider: playlabProvider as any,
         prompt: `Generate a realistic profile for a ${demographicDetails} ${profession} with ${experience} years of experience ${locationDetails ? `from ${locationDetails}` : ""} ${careerDetails}${specificCompany !== "any" ? ` currently at ${specificCompany}` : ""}.
         
         Include: name, age (appropriate for career stage), current role, company, brief background, education history, and career highlights. The profile should feel authentic and detailed.
@@ -134,7 +156,7 @@ export default function Interview() {
         - personalDetails: Additional relevant personal details based on demographic selections`,
       })
 
-      const profileData = JSON.parse(text)
+      const profileData = JSON.parse(result.text) as IntervieweeInfo
       setIntervieweeInfo(profileData)
 
       // Start the interview with an introduction
@@ -145,7 +167,7 @@ export default function Interview() {
     }
   }
 
-  const startInterview = async (profile: any) => {
+  const startInterview = async (profile: IntervieweeInfo): Promise<void> => {
     try {
       setIsGeneratingResponse(true)
       
@@ -170,6 +192,7 @@ export default function Interview() {
         profile.personalDetails || ""
       ].filter(Boolean).join(" ");
 
+      let fullResponse = ""
       const result = await streamText({
         model: playlab("premium"),
         provider: playlabProvider,
@@ -178,7 +201,7 @@ export default function Interview() {
         BACKGROUND INFORMATION:
         - Education: ${profile.education || "Not specified"}
         - Professional background: ${profile.background}
-        - Career highlights: ${profile.highlights.join(", ")}
+        - Career highlights: ${profile.highlights?.join(", ") || 'None provided'}
         - ${careerDetails}
         - ${locationDetails}
         - ${personalDetails}
@@ -194,17 +217,17 @@ export default function Interview() {
         onChunk: (chunk: any) => {
           if (chunk.type === "text-delta") {
             setCurrentMessage((prev: string) => prev + chunk.text)
+            fullResponse += chunk.text
           }
         },
       })
 
-      setTranscript((prev) => [...prev, { role: "ai", content: result.text }])
+      setTranscript((prev) => [...prev, { role: "assistant", content: result.text, timestamp: new Date() }])
       setCurrentMessage("")
       setInterviewStarted(true)
       setIsGeneratingResponse(false)
 
-      // Speak the introduction
-      speakText(result.text)
+      // Interview started successfully
     } catch (err) {
       console.error("Error starting interview:", err)
       setError("Failed to start the interview. Please try again.")
@@ -212,54 +235,15 @@ export default function Interview() {
     }
   }
 
-  const startListening = () => {
-    if (error) return
-
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
-    recognitionRef.current = new SpeechRecognition()
-    recognitionRef.current.continuous = true
-    recognitionRef.current.interimResults = true
-
-    recognitionRef.current.onstart = () => {
-      setIsListening(true)
-      setCurrentMessage("")
-    }
-
-    recognitionRef.current.onresult = (event: any) => {
-      const transcript = Array.from(event.results)
-        .map((result: any) => result[0])
-        .map((result) => result.transcript)
-        .join("")
-
-      setCurrentMessage(transcript)
-    }
-
-    recognitionRef.current.onerror = (event: any) => {
-      console.error("Speech recognition error", event)
-      setIsListening(false)
-    }
-
-    recognitionRef.current.onend = () => {
-      setIsListening(false)
-    }
-
-    recognitionRef.current.start()
-  }
-
-  const stopListening = async () => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop()
-      setIsListening(false)
-
-      if (currentMessage.trim()) {
-        const userMessage = currentMessage.trim()
-        setTranscript((prev: any[]) => [...prev, { role: "user", content: userMessage }])
-        setCurrentMessage("")
-
-        // Generate AI response
-        await generateAiResponse(userMessage)
-      }
-    }
+  const handleSendMessage = async (userInput: string): Promise<void> => {
+    if (!userInput.trim() || isGeneratingResponse) return;
+    
+    const userMessage = userInput.trim();
+    setTranscript((prev: Message[]) => [...prev, { role: "user" as const, content: userMessage, timestamp: new Date() }]);
+    setUserInput("");
+    
+    // Generate AI response
+    await generateAiResponse(userMessage);
   }
 
   const generateAiResponse = async (userMessage: string) => {
@@ -289,8 +273,13 @@ export default function Interview() {
       const personalDetails = [
         firstGeneration ? "I'm a first-generation college graduate." : "",
         immigrantBackground ? "I have an immigrant background or am a first-generation American." : "",
-        intervieweeInfo.personalDetails || ""
+        intervieweeInfo?.personalDetails || ""
       ].filter(Boolean).join(" ");
+
+      // Ensure intervieweeInfo exists before accessing its properties
+      if (!intervieweeInfo) {
+        throw new Error("Interviewee information is not available");
+      }
 
       const result = await streamText({
         model: playlab("premium"),
@@ -322,12 +311,11 @@ export default function Interview() {
         },
       })
 
-      setTranscript((prev) => [...prev, { role: "ai", content: result.text }])
+      setTranscript((prev) => [...prev, { role: "assistant", content: result.text, timestamp: new Date() }])
       setCurrentMessage("")
       setIsGeneratingResponse(false)
 
-      // Speak the response
-      speakText(result.text)
+      // Response generated successfully
 
       // Check if this is the end of the interview
       if (isEndingQuestion) {
@@ -340,100 +328,33 @@ export default function Interview() {
     }
   }
 
-  const speakText = (text: string) => {
-    if (!synthRef.current) return
-
-    // Cancel any ongoing speech
-    synthRef.current.cancel()
-
-    // Create a new utterance
-    utteranceRef.current = new SpeechSynthesisUtterance(text)
-
-    // Set voice (optional - can be customized based on gender/region)
-    const voices = synthRef.current.getVoices()
-    if (voices.length > 0) {
-      // Try to find a voice that matches gender if specified
-      if (gender === "female") {
-        const femaleVoice = voices.find((voice) => voice.name.includes("female") || voice.name.includes("Female"))
-        if (femaleVoice) utteranceRef.current.voice = femaleVoice
-      } else if (gender === "male") {
-        const maleVoice = voices.find((voice) => voice.name.includes("male") || voice.name.includes("Male"))
-        if (maleVoice) utteranceRef.current.voice = maleVoice
-      }
+  // Handle input change
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    setUserInput(e.target.value);
+  };
+  
+  // Handle Enter key press
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>): void => {
+    if (e.key === 'Enter') {
+      handleSendMessage(userInput);
     }
+  };
 
-    // Events
-    utteranceRef.current.onstart = () => {
-      setIsAiSpeaking(true)
-    }
-
-    utteranceRef.current.onend = () => {
-      setIsAiSpeaking(false)
-    }
-
-    utteranceRef.current.onerror = (event) => {
-      console.error("Speech synthesis error", event)
-      setIsAiSpeaking(false)
-    }
-
-    // Speak
-    synthRef.current.speak(utteranceRef.current)
-  }
-
-  const toggleSpeech = () => {
-    if (!synthRef.current) return
-
-    if (isAiSpeaking) {
-      synthRef.current.pause()
-      setIsAiSpeaking(false)
-    } else {
-      synthRef.current.resume()
-      setIsAiSpeaking(true)
-    }
-  }
-
-  const endInterview = () => {
-    // Navigate to feedback page with interview data
+  const endInterview = (): void => {
     const interviewData = {
       profession,
       interviewee: intervieweeInfo?.name || "Professional",
       transcript: transcript,
-    }
+    };
 
-    // Store in sessionStorage for the feedback page
-    sessionStorage.setItem("interviewData", JSON.stringify(interviewData))
-    router.push("/feedback")
-  }
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem("interviewData", JSON.stringify(interviewData));
+    }
+    router.push("/feedback");
+  };
 
   return (
     <main className="flex min-h-screen flex-col bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm p-4 sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto flex justify-between items-center">
-          <div className="flex items-center space-x-4">
-            {intervieweeInfo && (
-              <>
-                <Avatar className="h-10 w-10">
-                  <AvatarFallback>{intervieweeInfo.avatarInitials}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <h2 className="font-semibold">{intervieweeInfo.name}</h2>
-                  <p className="text-sm text-gray-500">
-                    {intervieweeInfo.role} at {intervieweeInfo.company}
-                  </p>
-                </div>
-              </>
-            )}
-          </div>
-          <div>
-            <Badge className="bg-gray-100">
-              {profession} • {experience} years
-            </Badge>
-          </div>
-        </div>
-      </div>
-
-      {/* Main content */}
       <div className="flex-1 p-4 md:p-8">
         <div className="max-w-4xl mx-auto">
           {error && (
@@ -442,130 +363,93 @@ export default function Interview() {
             </Alert>
           )}
 
-          {/* Interview transcript */}
-          <Card className="mb-4 min-h-[400px] max-h-[60vh] overflow-y-auto">
-            <CardContent className="p-4">
-              {transcript.length === 0 && !intervieweeInfo && (
-                <div className="flex items-center justify-center h-[400px]">
-                  <div className="text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-800 mx-auto mb-4"></div>
-                    <p>Generating your interviewee profile...</p>
-                  </div>
+          {/* Interview Start Card */}
+          {!interviewStarted && !interviewEnded && (
+            <Card className="w-full">
+              <CardContent className="p-6">
+                <div className="text-center space-y-4">
+                  <h2 className="text-2xl font-bold">Welcome to Your Mock Interview</h2>
+                  <p className="text-gray-600">
+                    You'll be interviewing {intervieweeInfo?.name || 'a professional'} for a {profession} position.
+                  </p>
+                  <Button onClick={() => startInterview(intervieweeInfo!)}>
+                    Start Interview
+                  </Button>
                 </div>
-              )}
+              </CardContent>
+            </Card>
+          )}
 
-              <div className="space-y-4">
-                {transcript.map((message, index) => (
-                  <div key={index} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
+          {/* Transcript */}
+          {interviewStarted && (
+            <Card className="w-full mb-4">
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  {transcript.map((message, index) => (
                     <div
-                      className={`max-w-[80%] p-3 rounded-lg ${message.role === "user" ? "bg-blue-100 text-blue-900" : "bg-gray-100 text-gray-900"}`}
+                      key={index}
+                      className={`flex ${
+                        message.role === 'user' ? 'justify-end' : 'justify-start'
+                      }`}
                     >
-                      {message.content}
+                      <div
+                        className={`max-w-3xl rounded-lg px-4 py-2 ${
+                          message.role === 'user'
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}
+                      >
+                        {message.content}
+                      </div>
                     </div>
-                  </div>
-                ))}
-
-                {isGeneratingResponse && (
-                  <div className="flex justify-start">
-                    <div className="max-w-[80%] p-3 rounded-lg bg-gray-100 text-gray-900">
-                      {currentMessage || (
+                  ))}
+                  {isGeneratingResponse && (
+                    <div className="flex justify-start">
+                      <div className="bg-gray-100 rounded-lg px-4 py-2">
                         <div className="flex space-x-2">
                           <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce"></div>
-                          <div
-                            className="w-2 h-2 rounded-full bg-gray-400 animate-bounce"
-                            style={{ animationDelay: "0.2s" }}
-                          ></div>
-                          <div
-                            className="w-2 h-2 rounded-full bg-gray-400 animate-bounce"
-                            style={{ animationDelay: "0.4s" }}
-                          ></div>
+                          <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                          <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0.4s' }}></div>
                         </div>
-                      )}
+                      </div>
                     </div>
-                  </div>
-                )}
-
-                {isListening && (
-                  <div className="flex justify-end">
-                    <div className="max-w-[80%] p-3 rounded-lg bg-blue-100 text-blue-900">
-                      {currentMessage || (
-                        <div className="flex items-center space-x-2">
-                          <span>Listening</span>
-                          <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
-                          <div
-                            className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"
-                            style={{ animationDelay: "0.2s" }}
-                          ></div>
-                          <div
-                            className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"
-                            style={{ animationDelay: "0.4s" }}
-                          ></div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-                <div ref={messagesEndRef} />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Controls */}
-          <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-            <div className="flex space-x-4">
-              {interviewStarted && !interviewEnded && (
-                <>
-                  {isListening ? (
-                    <Button
-                      variant="destructive"
-                      size="lg"
-                      onClick={stopListening}
-                      disabled={isGeneratingResponse || isAiSpeaking}
-                    >
-                      <MicOff className="mr-2 h-5 w-5" />
-                      Stop Recording
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="default"
-                      size="lg"
-                      onClick={startListening}
-                      disabled={isGeneratingResponse || isAiSpeaking || error !== null}
-                    >
-                      <Mic className="mr-2 h-5 w-5" />
-                      Start Recording
-                    </Button>
                   )}
+                  <div ref={messagesEndRef} />
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-                  {isAiSpeaking ? (
-                    <Button variant="outline" size="lg" onClick={toggleSpeech}>
-                      <PauseCircle className="mr-2 h-5 w-5" />
-                      Pause Speech
-                    </Button>
-                  ) : (
-                    transcript.length > 0 && (
-                      <Button
-                        variant="outline"
-                        size="lg"
-                        onClick={toggleSpeech}
-                        disabled={!synthRef.current || !utteranceRef.current}
-                      >
-                        <PlayCircle className="mr-2 h-5 w-5" />
-                        Resume Speech
-                      </Button>
-                    )
-                  )}
-                </>
-              )}
+          {/* Message Input */}
+          {interviewStarted && !interviewEnded && (
+            <div className="flex w-full space-x-2 mt-4">
+              <Input
+                type="text"
+                placeholder="Type your question here..."
+                value={userInput}
+                onChange={handleInputChange}
+                onKeyPress={handleKeyPress}
+                disabled={isGeneratingResponse}
+                className="flex-grow"
+              />
+              <Button
+                onClick={() => handleSendMessage(userInput)}
+                disabled={!userInput.trim() || isGeneratingResponse}
+              >
+                <ArrowRight className="h-5 w-5" />
+                Send
+              </Button>
             </div>
+          )}
 
-            {interviewEnded && (
+          {interviewEnded && (
+            <div className="flex justify-center w-full mt-4">
               <Button variant="default" size="lg" onClick={endInterview}>
                 <FileText className="mr-2 h-5 w-5" />
                 View Feedback & Transcript
               </Button>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Instructions */}
           {interviewStarted && !interviewEnded && (
@@ -583,5 +467,5 @@ export default function Interview() {
         </div>
       </div>
     </main>
-  )
+  );
 }

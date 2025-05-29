@@ -99,22 +99,29 @@ export class PlayLabProvider implements AIProvider {
 
       // Create a streaming response parser
       const stream = AIStream(response);
+      
+      // Handle onChunk callback if provided
+      if ('onChunk' in options && typeof options.onChunk === 'function') {
+        const onChunk = options.onChunk;
+        stream.on('data', (chunk: Uint8Array) => {
+          const text = new TextDecoder().decode(chunk);
+          onChunk({
+            type: 'text-delta',
+            text: text
+          });
+        });
+      }
+      
       let fullText = '';
 
       // Process the stream
       return {
         stream,
         text: await new Promise((resolve) => {
-          stream.on('data', (chunk) => {
-            const decoded = new TextDecoder().decode(chunk);
-            try {
-              const parsedChunk = JSON.parse(decoded.replace('data: ', ''));
-              if (parsedChunk.choices && parsedChunk.choices[0].delta.content) {
-                fullText += parsedChunk.choices[0].delta.content;
-              }
-            } catch (e) {
-              // Skip unparseable chunks
-            }
+          // Using the proper AIStream event handling
+          stream.on('data', (chunk: Uint8Array) => {
+            const text = new TextDecoder().decode(chunk);
+            fullText += text;
           });
           
           stream.on('end', () => {
