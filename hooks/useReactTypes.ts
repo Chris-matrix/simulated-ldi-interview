@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from 'react';
 
 // Re-export React hooks with proper typing
 export function useRef<T>(initialValue: T | null): React.MutableRefObject<T | null> {

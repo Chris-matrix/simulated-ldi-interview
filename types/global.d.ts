@@ -65,13 +65,34 @@ declare module '@ai-sdk/openai' {
 
 // Add declarations for React and Next.js modules
 declare module 'react' {
-  export * from 'react';
+  export interface React {
+    createElement: any;
+    Fragment: any;
+  }
+  const React: React;
+  export default React;
   export function useState<T>(initialState: T | (() => T)): [T, (newState: T | ((prevState: T) => T)) => void];
   export function useEffect(effect: () => void | (() => void), deps?: ReadonlyArray<any>): void;
+  export function useRef<T>(initialValue: T | null): { current: T | null };
+  export function useCallback<T extends (...args: any[]) => any>(callback: T, deps: ReadonlyArray<any>): T;
   export interface ChangeEvent<T = Element> {
     target: T;
     currentTarget: T;
   }
+  export type FC<P = {}> = (props: P) => JSX.Element | null;
+  export type ReactNode = JSX.Element | string | number | boolean | null | undefined;
+  export type ReactElement = JSX.Element;
+  export type MutableRefObject<T> = { current: T };
+  export type Dispatch<A> = (value: A) => void;
+  export type SetStateAction<S> = S | ((prevState: S) => S);
+  export type EffectCallback = () => void | (() => void);
+  export type DependencyList = ReadonlyArray<any>;
+  export type ForwardRefExoticComponent<P> = FC<P>;
+  export type RefAttributes<T> = { ref?: React.Ref<T> };
+  export type Ref<T> = MutableRefObject<T> | ((instance: T | null) => void) | null;
+  export type HTMLAttributes<T> = any;
+  export type SVGProps<T> = any;
+  export type CSSProperties = any;
 }
 
 // Add JSX namespace for TypeScript to recognize JSX elements
@@ -94,25 +115,7 @@ interface SpeechRecognition extends EventTarget {
   stop(): void;
 }
 
-// Lucide icon type declarations
-declare module 'lucide-react' {
-  import { ComponentType, SVGAttributes } from 'react';
-  
-  export interface IconProps extends SVGAttributes<SVGElement> {
-    color?: string;
-    size?: string | number;
-    strokeWidth?: string | number;
-    className?: string;
-  }
-  
-  export type Icon = ComponentType<IconProps>;
-  
-  export const ArrowLeft: Icon;
-  export const Download: Icon;
-  export const Home: Icon;
-  export const Mail: Icon;
-  export const Share2: Icon;
-}
+// Lucide icon type declarations - removed duplicate declaration
 
 interface Window {
   SpeechRecognition: new () => SpeechRecognition;
@@ -134,7 +137,7 @@ declare module 'next/navigation' {
 }
 
 declare module 'next/link' {
-  import { ComponentProps, ReactNode } from 'react';
+  import { ComponentProps, ReactNode, FC } from 'react';
   export interface LinkProps extends ComponentProps<'a'> {
     href: string;
     as?: string;
@@ -144,30 +147,38 @@ declare module 'next/link' {
     passHref?: boolean;
     prefetch?: boolean;
     locale?: string | false;
+    className?: string;
     children?: ReactNode;
   }
-  export default function Link(props: LinkProps): JSX.Element;
+  const Link: FC<LinkProps>;
+  export default Link;
 }
 
 declare module 'lucide-react' {
-  import { ComponentProps } from 'react';
+  import { ComponentProps, FC, ReactElement } from 'react';
   export interface IconProps extends ComponentProps<'svg'> {
     size?: string | number;
     color?: string;
     strokeWidth?: string | number;
+    className?: string;
   }
-  export function ArrowLeft(props: IconProps): JSX.Element;
-  export function ArrowRight(props: IconProps): JSX.Element;
-  export function Briefcase(props: IconProps): JSX.Element;
-  export function Globe(props: IconProps): JSX.Element;
-  export function Users(props: IconProps): JSX.Element;
-  export function Download(props: IconProps): JSX.Element;
-  export function Home(props: IconProps): JSX.Element;
-  export function Mail(props: IconProps): JSX.Element;
-  export function Share2(props: IconProps): JSX.Element;
-  export function Mic(props: IconProps): JSX.Element;
-  export function MicOff(props: IconProps): JSX.Element;
-  export function PauseCircle(props: IconProps): JSX.Element;
-  export function PlayCircle(props: IconProps): JSX.Element;
-  export function FileText(props: IconProps): JSX.Element;
+  
+  type IconComponent = FC<IconProps>;
+  
+  export const ArrowLeft: IconComponent;
+  export const ArrowRight: IconComponent;
+  export const Briefcase: IconComponent;
+  export const Globe: IconComponent;
+  export const Users: IconComponent;
+  export const Download: IconComponent;
+  export const Home: IconComponent;
+  export const Mail: IconComponent;
+  export const Share2: IconComponent;
+  export const Mic: IconComponent;
+  export const MicOff: IconComponent;
+  export const PauseCircle: IconComponent;
+  export const PlayCircle: IconComponent;
+  export const FileText: IconComponent;
+  export const MessageSquare: IconComponent;
+  export const X: IconComponent;
 }

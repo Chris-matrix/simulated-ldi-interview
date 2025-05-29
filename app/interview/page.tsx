@@ -6,7 +6,6 @@ import { useSearchParams, useRouter } from 'next/navigation';
 // UI Components
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
@@ -48,7 +47,6 @@ export default function Interview() {
   const router = useRouter()
   // State management
   const [transcript, setTranscript] = React.useState<Message[]>([]);
-  const [currentMessage, setCurrentMessage] = React.useState('');
   const [userInput, setUserInput] = React.useState('');
   const [interviewStarted, setInterviewStarted] = React.useState(false);
   const [interviewEnded, setInterviewEnded] = React.useState(false);
@@ -223,7 +221,6 @@ export default function Interview() {
       })
 
       setTranscript((prev) => [...prev, { role: "assistant", content: result.text, timestamp: new Date() }])
-      setCurrentMessage("")
       setInterviewStarted(true)
       setIsGeneratingResponse(false)
 
@@ -312,7 +309,6 @@ export default function Interview() {
       })
 
       setTranscript((prev) => [...prev, { role: "assistant", content: result.text, timestamp: new Date() }])
-      setCurrentMessage("")
       setIsGeneratingResponse(false)
 
       // Response generated successfully

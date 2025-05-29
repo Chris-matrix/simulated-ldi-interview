@@ -1,7 +1,7 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import React from 'react'
+const { useState, useEffect } = React
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { generateText } from "ai"
 import { playlab } from "@/lib/playlab-ai"
 import playlabProvider from "@/lib/ai-config"
-import { ArrowLeft, Download, Home, Mail, Share2 } from "lucide-react"
+import { Download, Home, Mail, Share2 } from "lucide-react"
 import Link from "next/link"
 
 interface Message {
@@ -58,7 +58,7 @@ interface FeedbackData {
 }
 
 export default function Feedback() {
-  const router = useRouter()
+  // Router removed as it was unused
   const [interviewData, setInterviewData] = useState<InterviewData | null>(null)
   const [feedback, setFeedback] = useState<FeedbackData | null>(null)
   const [isLoading, setIsLoading] = useState(true)

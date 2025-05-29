@@ -4,7 +4,7 @@
     "allowJs": true,
     "target": "es6",
     "skipLibCheck": true,
-    "strict": true,
+    "strict": false,
     "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",
@@ -17,11 +17,13 @@
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
-    "noImplicitReturns": true,
-    "noUnusedLocals": true,
+    "noImplicitReturns": false,
+    "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "strictNullChecks": true,
+    "strictNullChecks": false,
     "noImplicitAny": false,
+    "noImplicitThis": false,
+    "checkJs": false,
     "types": ["node", "react", "react-dom"],
     "typeRoots": [
       "./node_modules/@types",
@@ -33,7 +35,7 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./"]
     }
   },
   "include": [

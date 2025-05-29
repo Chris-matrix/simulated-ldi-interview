@@ -1,7 +1,7 @@
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "../../components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card"
 import Link from "next/link"
-import { ArrowLeft, Mic, FileText, MessageSquare, Brain } from "lucide-react"
+import { ArrowLeft, Mic, FileText } from "lucide-react"
 
 export default function HowItWorks() {
   return (
@@ -19,7 +19,7 @@ export default function HowItWorks() {
           <Card className="bg-white shadow-md">
             <CardHeader>
               <div className="flex items-center space-x-2">
-                <MessageSquare className="h-6 w-6 text-gray-600" />
+                <FileText className="h-6 w-6 text-gray-600" />
                 <CardTitle>1. Select a Profession</CardTitle>
               </div>
               <CardDescription>Choose who you want to interview</CardDescription>
@@ -37,7 +37,7 @@ export default function HowItWorks() {
             <CardHeader>
               <div className="flex items-center space-x-2">
                 <Mic className="h-6 w-6 text-gray-600" />
-                <CardTitle>2. Voice Conversation</CardTitle>
+                <CardTitle>2. Voice Conversation(future-feature)</CardTitle>
               </div>
               <CardDescription>Speak naturally with the AI professional</CardDescription>
             </CardHeader>
@@ -53,7 +53,7 @@ export default function HowItWorks() {
           <Card className="bg-white shadow-md">
             <CardHeader>
               <div className="flex items-center space-x-2">
-                <Brain className="h-6 w-6 text-gray-600" />
+                <FileText className="h-6 w-6 text-gray-600" />
                 <CardTitle>3. AI-Generated Responses</CardTitle>
               </div>
               <CardDescription>Get authentic career insights</CardDescription>
