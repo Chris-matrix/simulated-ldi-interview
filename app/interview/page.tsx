@@ -34,7 +34,7 @@ import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
 // Icons
-import { ArrowRight, FileText } from 'lucide-react';
+import { ArrowRight, FileText, Home } from 'lucide-react';
 
 // Types
 import { Message, IntervieweeInfo } from "@/types/interview"
@@ -580,9 +580,20 @@ Format as JSON with these fields:
   }, [state.intervieweeInfo, state.transcript, router]);
 
   return (
-    <main className="flex min-h-screen flex-col bg-gray-50">
-      <div className="flex-1 p-4 md:p-8">
-        <div className="max-w-4xl mx-auto">
+    <main className="flex min-h-screen flex-col items-center justify-between p-4 md:p-24">
+      <div className="w-full max-w-4xl mx-auto">
+        <div className="mb-4">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => router.push('/')}
+            className="flex items-center gap-1"
+          >
+            <Home className="h-4 w-4" />
+            Back to Home
+          </Button>
+        </div>
+        <div className="space-y-6">
           {error && (
             <Alert variant="destructive" className="mb-4">
               <AlertDescription>{error}</AlertDescription>
@@ -598,7 +609,9 @@ Format as JSON with these fields:
                   <p className="text-gray-600">
                     You'll be interviewing {intervieweeInfo?.name || 'a professional'} for a {profession} position.
                   </p>
-                  <Button onClick={() => startInterview(intervieweeInfo!)}>
+                  <Button 
+                    onClick={() => intervieweeInfo ? startInterview(intervieweeInfo) : updateState({error: "Interview profile not loaded yet. Please wait or refresh the page."})}>
+
                     Start Interview
                   </Button>
                 </div>
