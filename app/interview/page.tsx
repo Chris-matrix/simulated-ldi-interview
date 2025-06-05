@@ -1,31 +1,15 @@
 "use client"
 
-import * as React from 'react';
 import { 
   useState, 
   useEffect, 
-  useCallback,
-  ReactNode
+  useCallback
 } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+
 // Event handler types
 type InputChangeEvent = { target: { value: string } };
 type KeyboardEvent = { key: string; preventDefault: () => void; };
-
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      'lucide-icon': any; // Using 'any' as a workaround for Lucide icon type issues
-    }
-  }
-}
-
-// Type definitions
-interface CustomErrorInfo {
-  componentStack: string;
-}
-
-type CustomReactNode = React.ReactNode;
-import { useSearchParams, useRouter } from 'next/navigation';
 
 // UI Components
 import { Button } from "@/components/ui/button"
@@ -89,7 +73,10 @@ const ErrorBoundary = ({ children, fallback }: ErrorBoundaryProps): JSX.Element 
   }, []);
   
   if (error) {
-    return fallback || (
+    if (fallback) {
+      return <>{fallback}</>;
+    }
+    return (
       <div className="p-4 bg-red-50 text-red-700 rounded">
         <h2 className="font-bold">Something went wrong.</h2>
         <p>Please refresh the page and try again.</p>
