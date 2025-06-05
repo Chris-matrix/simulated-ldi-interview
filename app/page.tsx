@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
-import { ArrowRight, Mic, FileText } from "lucide-react"
+import { ArrowRight, Mic, FileText, MessageSquare } from "lucide-react"
 
 export default function Home() {
   return (

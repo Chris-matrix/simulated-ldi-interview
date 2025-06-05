@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../..
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
+import { Message, FeedbackData } from "@/types/interview"
 
 export default function SampleFeedback() {
   const sampleTranscript = [

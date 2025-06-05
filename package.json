@@ -68,5 +68,9 @@
     "postcss": "^8.5.3",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.3.3"
-  }
+  },
+  "main": "index.js",
+  "repository": "https://github.com/Chris-matrix/v0-simulated-ldi-interview.git",
+  "author": "Chris-matrix <cwatt0046@lauchpadphilly.org>",
+  "license": "MIT"
 }

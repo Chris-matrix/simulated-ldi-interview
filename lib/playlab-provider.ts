@@ -3,8 +3,7 @@ import {
   GenerateTextOptions, 
   StreamTextOptions, 
   GenerateTextResult,
-  StreamTextResult,
-  AIStream
+  StreamTextResult
 } from 'ai';
 import { PlayLabAIModel } from './playlab-ai';
 
@@ -97,37 +96,30 @@ export class PlayLabProvider implements AIProvider {
         throw new Error(`PlayLab AI API error: ${error.message || response.statusText}`);
       }
 
-      // Create a streaming response parser
-      const stream = AIStream(response);
-      
-      // Handle onChunk callback if provided
-      if ('onChunk' in options && typeof options.onChunk === 'function') {
-        const onChunk = options.onChunk;
-        stream.on('data', (chunk: Uint8Array) => {
-          const text = new TextDecoder().decode(chunk);
-          onChunk({
-            type: 'text-delta',
-            text: text
-          });
-        });
-      }
-      
+      const reader = response.body?.getReader();
       let fullText = '';
 
-      // Process the stream
-      return {
-        stream,
-        text: await new Promise((resolve) => {
-          // Using the proper AIStream event handling
-          stream.on('data', (chunk: Uint8Array) => {
-            const text = new TextDecoder().decode(chunk);
+      if (reader && 'onChunk' in options && typeof options.onChunk === 'function') {
+        const onChunk = options.onChunk;
+        const decoder = new TextDecoder();
+        let done = false;
+        while (!done) {
+          const { value, done: doneReading } = await reader.read();
+          done = doneReading;
+          if (value) {
+            const text = decoder.decode(value);
+            onChunk({
+              type: 'text-delta',
+              text: text
+            });
             fullText += text;
-          });
-          
-          stream.on('end', () => {
-            resolve(fullText);
-          });
-        }),
+          }
+        }
+      }
+
+      return {
+        stream: response.body,
+        text: fullText
       };
     } catch (error) {
       console.error('Error streaming text with PlayLab AI:', error);
