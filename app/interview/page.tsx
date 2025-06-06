@@ -8,6 +8,7 @@ import {
   useRef
 } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 // Event handler types
 type InputChangeEvent = { target: { value: string } };
@@ -340,9 +341,22 @@ Format as JSON with these fields:
             // Fix any dangling property names without values
             fixedJson = fixedJson.replace(/"([^"]+)"\s*([,}])/g, '"$1": ""$2');
             
-            // Test if valid now
-            JSON.parse(fixedJson);
-            return fixedJson;
+            // Handle any invalid escape sequences
+            fixedJson = fixedJson.replace(/\\([^"\\bfnrtu])/g, '$1');
+            
+            // Remove any trailing commas in objects and arrays
+            fixedJson = fixedJson.replace(/,\s*}/g, '}');
+            fixedJson = fixedJson.replace(/,\s*\]/g, ']');
+            
+            try {
+              // Test if valid now
+              JSON.parse(fixedJson);
+              return fixedJson;
+            } catch (innerError) {
+              // If still not valid, return a minimal valid object
+              console.error('JSON still invalid after aggressive repairs');
+              return '{"name":"Fallback Profile","profession":"Professional","experience":[]}';  
+            }
           } catch (e2) {
             console.log('Aggressive repairs failed, using fallback approach');
             
@@ -615,6 +629,14 @@ Format as JSON with these fields:
 return (
   <main className="flex min-h-screen flex-col items-center justify-between p-4 md:p-24">
     <div className="w-full max-w-4xl mx-auto">
+      <div className="flex justify-between items-center mb-4">
+        <Link href="/">
+          <Button variant="outline" size="sm">
+            <Home className="mr-2 h-4 w-4" />
+            Back to Home
+          </Button>
+        </Link>
+      </div>
       <div className="mb-4">
         {/* Welcome Card */}
         {!interviewStarted && (
