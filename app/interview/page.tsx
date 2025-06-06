@@ -1,9 +1,11 @@
 "use client"
 
+import * as React from 'react';
 import { 
   useState, 
   useEffect, 
-  useCallback
+  useCallback,
+  useRef
 } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 
@@ -42,53 +44,8 @@ const playlabProvider = {
   }
 };
 
-// Error Boundary Component with proper typing
-interface CustomErrorInfo {
-  componentStack: string;
-}
-
-interface ErrorBoundaryProps {
-  children: React.ReactNode;
-  fallback?: React.ReactNode;
-}
-
-interface ErrorBoundaryState {
-  hasError: boolean;
-  error: Error | null;
-}
-
-// Simple error boundary implementation
-const ErrorBoundary = ({ children, fallback }: ErrorBoundaryProps): JSX.Element => {
-  const [error, setError] = useState<Error | null>(null);
-  
-  // Use effect to catch errors
-  useEffect(() => {
-    const handleError = (event: ErrorEvent) => {
-      event.preventDefault();
-      setError(event.error);
-    };
-    
-    window.addEventListener('error', handleError);
-    return () => window.removeEventListener('error', handleError);
-  }, []);
-  
-  if (error) {
-    if (fallback) {
-      return <>{fallback}</>;
-    }
-    return (
-      <div className="p-4 bg-red-50 text-red-700 rounded">
-        <h2 className="font-bold">Something went wrong.</h2>
-        <p>Please refresh the page and try again.</p>
-        {error && (
-          <p className="text-sm mt-2">{error.message}</p>
-        )}
-      </div>
-    );
-  }
-  
-  return <>{children}</>;
-}
+// Import the proper ErrorBoundary component
+import ErrorBoundary from '@/components/error-boundary';
 
 interface InterviewState {
   transcript: Message[];
@@ -106,7 +63,7 @@ export default function Interview() {
   const router = useRouter();
   
   // State management
-  const [state, setState] = React.useState<InterviewState>({
+  const [state, setState] = useState<InterviewState>({
     transcript: [],
     userInput: '',
     interviewStarted: false,
@@ -117,7 +74,7 @@ export default function Interview() {
     currentMessage: ''
   });
   
-  const messagesEndRef = React.useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Helper function to update state
   const updateState = (updates: Partial<InterviewState>) => {
@@ -137,7 +94,7 @@ export default function Interview() {
   } = state;
   
   // Message management functions
-  const addMessage = React.useCallback((message: Message) => {
+  const addMessage = useCallback((message: Message) => {
     const newMessage: Message = {
       role: message.role,
       content: message.content,
@@ -149,7 +106,7 @@ export default function Interview() {
     });
   }, [state.transcript]);
   
-  const updateMessage = React.useCallback((index: number, update: Partial<Message>) => {
+  const updateMessage = useCallback((index: number, update: Partial<Message>) => {
     updateState({
       transcript: state.transcript.map((msg, i) => 
         i === index ? { ...msg, ...update } : msg
@@ -212,7 +169,7 @@ export default function Interview() {
   const careerChanger = searchParams.get("careerChanger") === "true"
   const immigrantBackground = searchParams.get("immigrantBackground") === "true"
 
-  React.useEffect(() => {
+  useEffect(() => {
     // Generate interviewee profile
     generateIntervieweeProfile()
 
@@ -221,7 +178,7 @@ export default function Interview() {
     }
   }, [])
 
-  React.useEffect(() => {
+  useEffect(() => {
     // Scroll to bottom of messages
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [transcript])
@@ -304,22 +261,34 @@ Format as JSON with these fields:
         console.log('Attempting to repair malformed JSON');
         let fixedJson = jsonStr;
         
-        // 1. Fix the specific error pattern we identified in the error message
-        // This is a direct string replacement for the exact error we're seeing
-        const errorPattern = '"years": "2016-present"\n        }\n       "skills":';
-        if (fixedJson.includes(errorPattern)) {
-          console.log('Found exact error pattern, applying direct fix');
-          fixedJson = fixedJson.replace(
-            errorPattern,
-            '"years": "2016-present"\n        }\n    ],\n    "skills":'
-          );
-        } else if (fixedJson.includes('"years": "2016-present"')) {
-          // More general pattern matching if the exact pattern isn't found
-          fixedJson = fixedJson.replace(
-            /"years":\s*"2016-present"[\s\n]*}[\s\n]*"skills":/g, 
-            '"years": "2016-present"\n        }\n    ],\n    "skills":'
-          );
-          console.log('Applied general fix for the experience array');
+        // 0. Remove any non-JSON content that might be surrounding the JSON
+        // Look for the first { and the last }
+        const firstBrace = fixedJson.indexOf('{');
+        const lastBrace = fixedJson.lastIndexOf('}');
+        
+        if (firstBrace !== -1 && lastBrace !== -1 && firstBrace < lastBrace) {
+          fixedJson = fixedJson.substring(firstBrace, lastBrace + 1);
+        }
+        
+        // Handle common AI response formatting issues
+        // Remove markdown code block markers
+        fixedJson = fixedJson.replace(/```json\s*|```\s*$/g, '');
+        
+        // 1. Fix common error patterns
+        // Fix missing array closing bracket before a new property
+        fixedJson = fixedJson.replace(/}\s*"([^"]+)":/g, '}],\n    "$1":');
+        
+        // Fix specific error pattern with years and skills
+        if (fixedJson.includes('"years":') && fixedJson.includes('"skills":')) {
+          // Look for pattern where years is followed directly by skills without proper array closure
+          const yearsSkillsPattern = /"years":\s*"[^"]*"[\s\n]*}[\s\n]*"skills":/g;
+          if (yearsSkillsPattern.test(fixedJson)) {
+            console.log('Found years-skills pattern, applying fix');
+            fixedJson = fixedJson.replace(
+              yearsSkillsPattern,
+              '"years": "2016-present"\n        }\n    ],\n    "skills":'
+            );
+          }
         }
         
         // 2. General JSON fixes
@@ -328,6 +297,16 @@ Format as JSON with these fields:
         
         // Fix missing commas between array items
         fixedJson = fixedJson.replace(/}[\s\n]*{/g, '},\n        {');
+        
+        // Fix trailing commas before closing brackets/braces
+        fixedJson = fixedJson.replace(/,\s*\]/g, '\n    ]');
+        fixedJson = fixedJson.replace(/,\s*}/g, '\n}');
+        
+        // Fix missing quotes around property names
+        fixedJson = fixedJson.replace(/([{,]\s*)([a-zA-Z0-9_]+)\s*:/g, '$1"$2":');
+        
+        // Fix unquoted string values
+        fixedJson = fixedJson.replace(/:\s*([a-zA-Z0-9_\-]+)\s*([,}\n])/g, ': "$1"$2');
         
         // Fix missing closing brackets for arrays
         const openBrackets = (fixedJson.match(/\[/g) || []).length;
@@ -345,7 +324,46 @@ Format as JSON with these fields:
           fixedJson = fixedJson + '\n}'.repeat(diff);
         }
         
-        return fixedJson;
+        // Final cleanup - ensure we have valid JSON structure
+        try {
+          // Test if it's valid JSON now
+          JSON.parse(fixedJson);
+          return fixedJson;
+        } catch (e) {
+          console.log('Still invalid JSON after repairs, trying more aggressive approach');
+          
+          // More aggressive repairs
+          try {
+            // Replace any remaining problematic characters
+            fixedJson = fixedJson.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
+            
+            // Fix any dangling property names without values
+            fixedJson = fixedJson.replace(/"([^"]+)"\s*([,}])/g, '"$1": ""$2');
+            
+            // Test if valid now
+            JSON.parse(fixedJson);
+            return fixedJson;
+          } catch (e2) {
+            console.log('Aggressive repairs failed, using fallback approach');
+            
+            // Last resort: Try to extract valid JSON objects/arrays
+            try {
+              // Try to extract any valid JSON object
+              const objectMatch = fixedJson.match(/{[\s\S]*}/);
+              if (objectMatch) {
+                const extracted = objectMatch[0];
+                JSON.parse(extracted); // Test if valid
+                return extracted;
+              }
+            } catch (e3) {
+              console.log('Failed to extract valid JSON object');
+            }
+          }
+          
+          // If we get here, we need to return a valid JSON string even if it's empty
+          console.log('All JSON repair attempts failed, returning empty object');
+          return '{}';
+        }
       };
       
       try {
@@ -376,7 +394,25 @@ Format as JSON with these fields:
               // Try to repair and parse the JSON
               const repairedJson = repairJson(jsonStr);
               console.log('Repaired JSON:', repairedJson.substring(0, 100) + '...');
-              profileData = JSON.parse(repairedJson) as IntervieweeInfo;
+              
+              try {
+                // If we got an empty object from repair, go straight to fallback
+                if (repairedJson === '{}') {
+                  console.log('Repair returned empty object, using fallback profile');
+                  throw new Error('Empty JSON after repair');
+                }
+                
+                profileData = JSON.parse(repairedJson) as IntervieweeInfo;
+                
+                // Validate that we have the minimum required fields
+                if (!profileData.name || !profileData.profession) {
+                  console.log('Parsed JSON missing required fields, using fallback');
+                  throw new Error('Missing required fields');
+                }
+              } catch (finalParseError) {
+                console.error('Still failed to parse after repair, using fallback');
+                throw finalParseError;
+              }
             } catch (repairError) {
               console.error('Failed to repair JSON:', repairError);
               throw repairError;
@@ -397,12 +433,20 @@ Format as JSON with these fields:
           name: `${gender === 'male' ? 'John' : gender === 'female' ? 'Jane' : 'Alex'} Doe`,
           age: experience === 'entry-level' ? 25 : experience === 'mid-level' ? 32 : 45,
           role: profession,
-          profession: profession, // Add the missing profession property
+          profession: profession,
           company: specificCompany !== 'any' ? specificCompany : 'Tech Company Inc.',
           background: `${experience} professional with expertise in ${profession}.`,
           education: [`Bachelor's degree in ${profession.split(' ').pop() || 'relevant field'}`],
-          experience: [`${experience} as ${profession}`],
-          skills: [profession, 'Communication', 'Problem Solving'],
+          experience: [
+            {
+              role: profession,
+              company: specificCompany !== 'any' ? specificCompany : 'Tech Company Inc.',
+              description: `Worked as a ${profession} handling key responsibilities in the field.`,
+              years: experience === 'entry-level' ? '2020-present' : experience === 'mid-level' ? '2015-present' : '2010-present'
+            }
+          ],
+          skills: [profession, 'Communication', 'Problem Solving', 'Teamwork', profession.split(' ').pop() || 'Industry Knowledge'],
+          interests: ['Professional Development', 'Industry Trends', 'Technology'],
           achievements: ['Successfully completed multiple projects'],
           personalDetails: `${demographicDetails}`
         } as unknown as IntervieweeInfo; // Use unknown as intermediate type to avoid TypeScript errors
@@ -566,137 +610,113 @@ Format as JSON with these fields:
     router.push("/feedback");
   }, [state.intervieweeInfo, state.transcript, router]);
 
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-4 md:p-24">
-      <div className="w-full max-w-4xl mx-auto">
-        <div className="mb-4">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => router.push('/')}
-            className="flex items-center gap-1"
-          >
-            <Home className="h-4 w-4" />
-            Back to Home
-          </Button>
-        </div>
-        <div className="space-y-6">
-          {error && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
 
-          {/* Interview Start Card */}
-          {!interviewStarted && !interviewEnded && (
-            <Card className="w-full">
-              <CardContent className="p-6">
-                <div className="text-center space-y-4">
-                  <h2 className="text-2xl font-bold">Welcome to Your Mock Interview</h2>
-                  <p className="text-gray-600">
-                    You'll be interviewing {intervieweeInfo?.name || 'a professional'} for a {profession} position.
-                  </p>
-                  <Button 
-                    onClick={() => intervieweeInfo ? startInterview(intervieweeInfo) : updateState({error: "Interview profile not loaded yet. Please wait or refresh the page."})}>
 
-                    Start Interview
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+return (
+  <main className="flex min-h-screen flex-col items-center justify-between p-4 md:p-24">
+    <div className="w-full max-w-4xl mx-auto">
+      <div className="mb-4">
+        {/* Welcome Card */}
+        {!interviewStarted && (
+          <Card className="w-full mb-4">
+            <CardContent className="p-6">
+              <h2 className="text-2xl font-bold mb-4">Welcome to Your Life Design Interview</h2>
+              <p className="mb-4">Your interviewee profile is being generated. The interview will begin shortly.</p>
+            </CardContent>
+          </Card>
+        )}
 
-          {/* Transcript */}
-          {interviewStarted && (
-            <Card className="w-full mb-4">
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  {transcript.map((message, index) => (
+        {/* Transcript */}
+        {interviewStarted && (
+          <Card className="w-full mb-4">
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                {transcript.map((message, index) => (
+                  <div
+                    key={index}
+                    className={`flex ${
+                      message.role === 'user' ? 'justify-end' : 'justify-start'
+                    }`}
+                  >
                     <div
-                      key={index}
-                      className={`flex ${
-                        message.role === 'user' ? 'justify-end' : 'justify-start'
+                      className={`max-w-3xl rounded-lg px-4 py-2 ${
+                        message.role === 'user'
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-gray-100 text-gray-800'
                       }`}
                     >
-                      <div
-                        className={`max-w-3xl rounded-lg px-4 py-2 ${
-                          message.role === 'user'
-                            ? 'bg-blue-500 text-white'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}
-                      >
-                        {message.content}
+                      {message.content}
+                    </div>
+                  </div>
+                ))}
+                {isGeneratingResponse && (
+                  <div className="flex justify-start">
+                    <div className="bg-gray-100 rounded-lg px-4 py-2">
+                      <div className="flex space-x-2">
+                        <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce"></div>
+                        <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                        <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0.4s' }}></div>
                       </div>
                     </div>
-                  ))}
-                  {isGeneratingResponse && (
-                    <div className="flex justify-start">
-                      <div className="bg-gray-100 rounded-lg px-4 py-2">
-                        <div className="flex space-x-2">
-                          <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce"></div>
-                          <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                          <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0.4s' }}></div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  <div ref={messagesEndRef} />
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-          {/* Message Input */}
-          {interviewStarted && !interviewEnded && (
-            <div className="flex w-full space-x-2 mt-4">
-              <input
-                type="text"
-                placeholder="Type your question here..."
-                value={userInput}
-                onChange={(e: InputChangeEvent) => updateState({ userInput: e.target.value })}
-                onKeyDown={(e: KeyboardEvent) => {
-                  if (e.key === 'Enter' && state.userInput.trim()) {
-                    e.preventDefault();
-                    handleSendMessage(state.userInput);
-                  }
-                }}
-                disabled={isGeneratingResponse}
-                className="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-              <Button
-                onClick={() => handleSendMessage(userInput)}
-                disabled={!userInput.trim() || isGeneratingResponse}
-              >
-                <ArrowRight className="h-5 w-5" />
-                Send
-              </Button>
-            </div>
-          )}
+        {/* Message Input */}
+        {interviewStarted && !interviewEnded && (
+          <div className="flex w-full space-x-2 mt-4">
+            <input
+              type="text"
+              placeholder="Type your question here..."
+              value={userInput}
+              onChange={(e: InputChangeEvent) => updateState({ userInput: e.target.value })}
+              onKeyDown={(e: KeyboardEvent) => {
+                if (e.key === 'Enter' && state.userInput.trim()) {
+                  e.preventDefault();
+                  handleSendMessage(state.userInput);
+                }
+              }}
+              disabled={isGeneratingResponse}
+              className="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+            <Button
+              onClick={() => handleSendMessage(userInput)}
+              disabled={!userInput.trim() || isGeneratingResponse}
+            >
+              <ArrowRight className="h-5 w-5" />
+              Send
+            </Button>
+          </div>
+        )}
 
-          {interviewEnded && (
-            <div className="flex justify-center w-full mt-4">
-              <Button variant="default" size="lg" onClick={endInterview}>
-                <FileText className="mr-2 h-5 w-5" />
-                View Feedback & Transcript
-              </Button>
-            </div>
-          )}
+        {interviewEnded && (
+          <div className="flex justify-center w-full mt-4">
+            <Button variant="default" size="lg" onClick={endInterview}>
+              <FileText className="mr-2 h-5 w-5" />
+              View Feedback & Transcript
+            </Button>
+          </div>
+        )}
 
-          {/* Instructions */}
-          {interviewStarted && !interviewEnded && (
-            <div className="mt-8 bg-white p-4 rounded-lg shadow-sm">
-              <h3 className="font-semibold mb-2">Interview Tips</h3>
-              <ul className="list-disc pl-5 space-y-1 text-sm text-gray-600">
-                <li>Ask open-ended questions about their career journey</li>
-                <li>Inquire about key decisions and turning points</li>
-                <li>Ask about challenges they've faced and how they overcame them</li>
-                <li>Explore what they enjoy most about their profession</li>
-                <li>Ask what advice they would give to someone starting in their field</li>
-              </ul>
-            </div>
-          )}
-        </div>
+        {/* Instructions */}
+        {interviewStarted && !interviewEnded && (
+          <div className="mt-8 bg-white p-4 rounded-lg shadow-sm">
+            <h3 className="font-semibold mb-2">Interview Tips</h3>
+            <ul className="list-disc pl-5 space-y-1 text-sm text-gray-600">
+              <li>Ask open-ended questions about their career journey</li>
+              <li>Inquire about key decisions and turning points</li>
+              <li>Ask about challenges they've faced and how they overcame them</li>
+              <li>Explore what they enjoy most about their profession</li>
+              <li>Ask what advice they would give to someone starting in their field</li>
+            </ul>
+          </div>
+        )}
       </div>
-    </main>
-  );
+    </div>
+  </main>
+);
 }
