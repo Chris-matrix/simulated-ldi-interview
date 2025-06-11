@@ -155,8 +155,6 @@ export default function Interview() {
 
   // Get parameters from URL
   const profession = searchParams.get("profession") || "Software Engineer"
-  const gender = searchParams.get("gender") || "any"
-  const ethnicity = searchParams.get("ethnicity") || "any"
   const region = searchParams.get("region") || "any"
   const experience = searchParams.get("experience") || "10"
   const education = searchParams.get("education") || "any"
@@ -166,9 +164,7 @@ export default function Interview() {
   const workStyle = searchParams.get("workStyle") || "any"
   const city = searchParams.get("city") || "any"
   const country = searchParams.get("country") || "any"
-  const firstGeneration = searchParams.get("firstGeneration") === "true"
   const careerChanger = searchParams.get("careerChanger") === "true"
-  const immigrantBackground = searchParams.get("immigrantBackground") === "true"
 
   useEffect(() => {
     // Generate interviewee profile
@@ -186,14 +182,8 @@ export default function Interview() {
 
   const generateIntervieweeProfile = async () => {
     try {
-      // Build demographic description
-      const demographicDetails = [
-        gender !== "any" ? gender : "",
-        ethnicity !== "any" ? ethnicity : "",
-        firstGeneration ? "first-generation college graduate" : "",
-        immigrantBackground ? "immigrant or first-generation American" : "",
-        careerChanger ? "career changer who switched fields" : ""
-      ].filter(Boolean).join(" ");
+      // Build career changer description
+      const careerChangerDetails = careerChanger ? "career changer who switched fields" : "";
       
       // Build location description
       const locationDetails = [
@@ -212,7 +202,7 @@ export default function Interview() {
     
       console.log('Sending request to generate profile...');
       
-      const prompt = `Generate a realistic profile for a ${demographicDetails} ${profession} with ${experience} years of experience${locationDetails ? ` from ${locationDetails}` : ''}${careerDetails ? ` ${careerDetails}` : ''}${specificCompany !== 'any' ? ` currently at ${specificCompany}` : ''}.
+      const prompt = `Generate a realistic profile for a ${profession} with ${experience} years of experience${locationDetails ? ` from ${locationDetails}` : ''}${careerChangerDetails ? ` ${careerChangerDetails}` : ''}${careerDetails ? ` ${careerDetails}` : ''}${specificCompany !== 'any' ? ` currently at ${specificCompany}` : ''}.
 
 Include: name, age (appropriate for career stage), current role, company, brief background, education history, and career highlights. The profile should feel authentic and detailed.
 
@@ -225,8 +215,7 @@ Format as JSON with these fields:
 - education: Array of education history
 - experience: Array of work experience
 - skills: Array of key skills
-- achievements: Array of notable achievements
-- personalDetails: Additional relevant personal details based on demographic selections`;
+- achievements: Array of notable achievements`;
 
       // Use the API route instead of direct PlayLab API calls
       console.log('Sending request to generate profile via API route...');
@@ -444,7 +433,7 @@ Format as JSON with these fields:
         // Create a fallback profile with the selected parameters
         console.log('Creating fallback profile...');
         profileData = {
-          name: `${gender === 'male' ? 'John' : gender === 'female' ? 'Jane' : 'Alex'} Doe`,
+          name: 'Alex Doe',
           age: experience === 'entry-level' ? 25 : experience === 'mid-level' ? 32 : 45,
           role: profession,
           profession: profession,
@@ -461,8 +450,7 @@ Format as JSON with these fields:
           ],
           skills: [profession, 'Communication', 'Problem Solving', 'Teamwork', profession.split(' ').pop() || 'Industry Knowledge'],
           interests: ['Professional Development', 'Industry Trends', 'Technology'],
-          achievements: ['Successfully completed multiple projects'],
-          personalDetails: `${demographicDetails}`
+          achievements: ['Successfully completed multiple projects']
         } as unknown as IntervieweeInfo; // Use unknown as intermediate type to avoid TypeScript errors
         
         console.log('Created fallback profile:', profileData);

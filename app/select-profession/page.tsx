@@ -16,8 +16,6 @@ import { Checkbox } from "@/components/ui/checkbox"
 
 interface ProfessionFormData {
   profession: string;
-  gender: string;
-  ethnicity: string;
   region: string;
   experience: number;
   education: string;
@@ -27,9 +25,7 @@ interface ProfessionFormData {
   workStyle: string;
   city: string;
   country: string;
-  firstGeneration: boolean;
   careerChanger: boolean;
-  immigrantBackground: boolean;
 }
 
 const professions = [
@@ -108,8 +104,6 @@ export default function SelectProfession() {
   const router = useRouter()
   const [profession, setProfession] = useState("")
   const [customProfession, setCustomProfession] = useState("")
-  const [gender, setGender] = useState("")
-  const [ethnicity, setEthnicity] = useState("")
   const [region, setRegion] = useState("")
   const [yearsExperience, setYearsExperience] = useState([10])
   const [showCustom, setShowCustom] = useState(false)
@@ -120,9 +114,7 @@ export default function SelectProfession() {
   const [workStyle, setWorkStyle] = useState("")
   const [city, setCity] = useState("")
   const [country, setCountry] = useState("")
-  const [firstGeneration, setFirstGeneration] = useState(false)
   const [careerChanger, setCareerChanger] = useState(false)
-  const [immigrantBackground, setImmigrantBackground] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   
   // Load previously saved form data when component mounts
@@ -149,8 +141,6 @@ export default function SelectProfession() {
         }
         
         // Restore other form fields
-        setGender(parsedData.gender !== "any" ? parsedData.gender : "")
-        setEthnicity(parsedData.ethnicity !== "any" ? parsedData.ethnicity : "")
         setRegion(parsedData.region !== "any" ? parsedData.region : "")
         setYearsExperience([parsedData.experience])
         setEducation(parsedData.education !== "any" ? parsedData.education : "")
@@ -160,9 +150,7 @@ export default function SelectProfession() {
         setWorkStyle(parsedData.workStyle !== "any" ? parsedData.workStyle : "")
         setCity(parsedData.city !== "any" ? parsedData.city : "")
         setCountry(parsedData.country !== "any" ? parsedData.country : "")
-        setFirstGeneration(parsedData.firstGeneration)
         setCareerChanger(parsedData.careerChanger)
-        setImmigrantBackground(parsedData.immigrantBackground)
       }
     } catch (error) {
       console.error("Error loading saved form data:", error)
@@ -195,8 +183,6 @@ export default function SelectProfession() {
     // Create form data object with proper types
     const formData: ProfessionFormData = {
       profession: selectedProfession,
-      gender: gender || "any",
-      ethnicity: ethnicity || "any",
       region: region || "any",
       experience: yearsExperience[0],
       education: education || "any",
@@ -206,17 +192,13 @@ export default function SelectProfession() {
       workStyle: workStyle || "any",
       city: city || "any",
       country: country || "any",
-      firstGeneration: firstGeneration,
-      careerChanger: careerChanger,
-      immigrantBackground: immigrantBackground
+      careerChanger: careerChanger
     }
     
     try {
       // Convert to URL parameters
       const params = new URLSearchParams({
         profession: formData.profession,
-        gender: formData.gender,
-        ethnicity: formData.ethnicity,
         region: formData.region,
         experience: formData.experience.toString(),
         education: formData.education,
@@ -226,9 +208,7 @@ export default function SelectProfession() {
         workStyle: formData.workStyle,
         city: formData.city,
         country: formData.country,
-        firstGeneration: formData.firstGeneration.toString(),
-        careerChanger: formData.careerChanger.toString(),
-        immigrantBackground: formData.immigrantBackground.toString()
+        careerChanger: formData.careerChanger.toString()
       })
       
       // Save form data to session storage for potential future use
@@ -249,19 +229,15 @@ export default function SelectProfession() {
           <CardHeader>
             <CardTitle className="text-2xl">Design Your Interview Experience</CardTitle>
             <CardDescription>
-              Customize the professional you'd like to interview based on career, demographics, and background
+              Customize the professional you'd like to interview based on career and background
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="profession" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 mb-6">
+              <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="profession" className="flex items-center">
                   <Briefcase className="mr-2 h-4 w-4" />
                   Career
-                </TabsTrigger>
-                <TabsTrigger value="demographics" className="flex items-center">
-                  <Users className="mr-2 h-4 w-4" />
-                  Demographics
                 </TabsTrigger>
                 <TabsTrigger value="location" className="flex items-center">
                   <Globe className="mr-2 h-4 w-4" />
@@ -407,63 +383,7 @@ export default function SelectProfession() {
                 </div>
               </TabsContent>
               
-              <TabsContent value="demographics" className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="gender">Gender</Label>
-                  <Select onValueChange={setGender}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Any" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="any">Any</SelectItem>
-                      <SelectItem value="male">Male</SelectItem>
-                      <SelectItem value="female">Female</SelectItem>
-                      <SelectItem value="non-binary">Non-binary</SelectItem>
-                      <SelectItem value="transgender">Transgender</SelectItem>
-                      <SelectItem value="genderqueer">Genderqueer</SelectItem>
-                      <SelectItem value="genderfluid">Genderfluid</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="ethnicity">Ethnicity</Label>
-                  <Select onValueChange={setEthnicity}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Any" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="any">Any</SelectItem>
-                      <SelectItem value="asian">Asian</SelectItem>
-                      <SelectItem value="black">Black</SelectItem>
-                      <SelectItem value="hispanic">Hispanic/Latino</SelectItem>
-                      <SelectItem value="middle-eastern">Middle Eastern</SelectItem>
-                      <SelectItem value="indigenous">Indigenous</SelectItem>
-                      <SelectItem value="pacific-islander">Pacific Islander</SelectItem>
-                      <SelectItem value="white">White</SelectItem>
-                      <SelectItem value="multiracial">Multiracial</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Background</Label>
-                  <div className="space-y-2 pt-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="first-gen" checked={firstGeneration} onCheckedChange={(checked: boolean | 'indeterminate') => setFirstGeneration(checked === true)} />
-                      <label htmlFor="first-gen" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                        First-generation college graduate
-                      </label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox id="immigrant" checked={immigrantBackground} onCheckedChange={(checked: boolean | 'indeterminate') => setImmigrantBackground(checked === true)} />
-                      <label htmlFor="immigrant" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                        Immigrant or first-generation American
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
               
               <TabsContent value="location" className="space-y-6">
                 <div className="space-y-2">

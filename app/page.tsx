@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
-import { ArrowRight, Mic, FileText, MessageSquare } from "lucide-react"
+import { ArrowRight, Mic, FileText, MessageSquare, PlayCircle, HelpCircle } from "lucide-react"
 
 export default function Home() {
   return (
@@ -17,12 +17,12 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
           <Card className="bg-white shadow-md hover:shadow-lg transition-shadow">
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Select a Profession</CardTitle>
-              <CardDescription>Choose from various career paths</CardDescription>
+              <CardTitle className="text-lg">Start New Interview</CardTitle>
+              <CardDescription>Choose a profession to interview</CardDescription>
             </CardHeader>
             <CardContent className="pt-0">
               <div className="flex justify-center py-4">
-                <MessageSquare className="h-12 w-12 text-gray-600" />
+                <MessageSquare className="h-12 w-12 text-primary" />
               </div>
             </CardContent>
             <CardFooter>
@@ -36,18 +36,18 @@ export default function Home() {
 
           <Card className="bg-white shadow-md hover:shadow-lg transition-shadow">
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Voice Interview</CardTitle>
-              <CardDescription>Speak naturally with AI professionals</CardDescription>
+              <CardTitle className="text-lg">Resume Interview</CardTitle>
+              <CardDescription>Continue your previous interview</CardDescription>
             </CardHeader>
             <CardContent className="pt-0">
               <div className="flex justify-center py-4">
-                <Mic className="h-12 w-12 text-gray-600" />
+                <PlayCircle className="h-12 w-12 text-primary" />
               </div>
             </CardContent>
             <CardFooter>
-              <Link href="/how-it-works" className="w-full">
+              <Link href="/interview" className="w-full">
                 <Button variant="outline" className="w-full">
-                  How It Works
+                  Resume Interview
                 </Button>
               </Link>
             </CardFooter>
@@ -55,18 +55,18 @@ export default function Home() {
 
           <Card className="bg-white shadow-md hover:shadow-lg transition-shadow">
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Get Feedback</CardTitle>
-              <CardDescription>Receive transcript and improve skills</CardDescription>
+              <CardTitle className="text-lg">Interview Questions</CardTitle>
+              <CardDescription>View sample questions to ask</CardDescription>
             </CardHeader>
             <CardContent className="pt-0">
               <div className="flex justify-center py-4">
-                <FileText className="h-12 w-12 text-gray-600" />
+                <HelpCircle className="h-12 w-12 text-primary" />
               </div>
             </CardContent>
             <CardFooter>
-              <Link href="/sample-feedback" className="w-full">
+              <Link href="/how-it-works" className="w-full">
                 <Button variant="outline" className="w-full">
-                  View Sample
+                  View Questions
                 </Button>
               </Link>
             </CardFooter>

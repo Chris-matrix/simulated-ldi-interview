@@ -37,13 +37,13 @@ export default function HowItWorks() {
             <CardHeader>
               <div className="flex items-center space-x-2">
                 <Mic className="h-6 w-6 text-gray-600" />
-                <CardTitle>2. Voice Conversation(future-feature)</CardTitle>
+                <CardTitle>2. Voice Conversation(future-feature pending)</CardTitle>
               </div>
               <CardDescription>Speak naturally with the AI professional</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-gray-700">
-                The simulator uses speech recognition to capture your questions and text-to-speech to deliver responses.
+                The simulator will be possibly include speech recognition to capture your questions and text-to-speech to deliver responses.
                 This creates a natural, conversational experience that mimics a real interview. Ask about their career
                 path, decisions, challenges, and advice.
               </p>
