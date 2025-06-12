@@ -1,52 +1,27 @@
 "use client"
 
-import * as React from 'react';
 import { 
   useState, 
   useEffect, 
   useCallback,
-  useRef
+  useRef,
+  KeyboardEvent as ReactKeyboardEvent,
+  ChangeEvent,
+  FormEvent
 } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-
-// Event handler types
-type InputChangeEvent = { target: { value: string } };
-type KeyboardEvent = { key: string; preventDefault: () => void; };
 
 // UI Components
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 
 // Icons
-import { ArrowRight, FileText, Home } from 'lucide-react';
+import { ArrowRight, Home as HomeIcon, FileText } from 'lucide-react';
 
 // Types
 import { Message, IntervieweeInfo } from "@/types/interview"
-
-// Mock functions to replace the missing ones
-const streamText = async (options: any) => {
-  // Implementation for streaming text
-  console.log('Streaming text with options:', options);
-  return { text: 'Mock AI response' };
-};
-
-const playlab = (tier: string) => ({
-  provider: 'playlab',
-  model: `playlab-${tier}`,
-});
-
-const playlabProvider = {
-  generateText: async (options: any) => {
-    // Mock implementation
-    return { text: 'Mock AI response' };
-  }
-};
-
-// Import the proper ErrorBoundary component
-import ErrorBoundary from '@/components/error-boundary';
 
 interface InterviewState {
   transcript: Message[];
@@ -61,7 +36,7 @@ interface InterviewState {
 
 export default function Interview() {
   const searchParams = useSearchParams();
-  const router = useRouter();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // State management
   const [state, setState] = useState<InterviewState>({
@@ -75,7 +50,10 @@ export default function Interview() {
     currentMessage: ''
   });
   
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  // Scroll to bottom of messages
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [state.transcript]);
   
   // Helper function to update state
   const updateState = (updates: Partial<InterviewState>) => {
@@ -88,10 +66,7 @@ export default function Interview() {
     userInput,
     interviewStarted,
     interviewEnded,
-    intervieweeInfo,
-    error,
-    isGeneratingResponse,
-    currentMessage
+    isGeneratingResponse
   } = state;
   
   // Message management functions
@@ -149,22 +124,20 @@ export default function Interview() {
     }
   }, [updateState, addMessage]);
 
-  // Mark unused functions as used to prevent warnings
-  const _unused = [addMessage, updateMessage, renderMessage];
-  void _unused;
 
-  // Get parameters from URL
-  const profession = searchParams.get("profession") || "Software Engineer"
-  const region = searchParams.get("region") || "any"
-  const experience = searchParams.get("experience") || "10"
-  const education = searchParams.get("education") || "any"
-  const industry = searchParams.get("industry") || "any"
-  const companyType = searchParams.get("companyType") || "any"
-  const specificCompany = searchParams.get("specificCompany") || "any"
-  const workStyle = searchParams.get("workStyle") || "any"
-  const city = searchParams.get("city") || "any"
-  const country = searchParams.get("country") || "any"
-  const careerChanger = searchParams.get("careerChanger") === "true"
+
+  // Get parameters from URL with default values
+  const profession = searchParams?.get("profession") ?? "Software Engineer";
+  const region = searchParams?.get("region") ?? "any";
+  const experience = searchParams?.get("experience") ?? "10";
+  const education = searchParams?.get("education") ?? "any";
+  const industry = searchParams?.get("industry") ?? "any";
+  const companyType = searchParams?.get("companyType") ?? "any";
+  const specificCompany = searchParams?.get("specificCompany") ?? "any";
+  const workStyle = searchParams?.get("workStyle") ?? "any";
+  const city = searchParams?.get("city") ?? "any";
+  const country = searchParams?.get("country") ?? "any";
+  const careerChanger = searchParams?.get("careerChanger") === "true";
 
   useEffect(() => {
     // Generate interviewee profile
@@ -477,25 +450,17 @@ Format as JSON with these fields:
     try {
       const json = JSON.parse(line.replace("data: ", ""));
       return json?.delta ?? "";
-    } catch {
-      // Ignore invalid lines
+    } catch (error) {
+      console.error("Error parsing delta line:", error);
       return "";
     }
   }
+  
+  // Mark unused functions as used to prevent warnings
+  const _unused = [addMessage, updateMessage, renderMessage, extractDeltaFromLine];
+  void _unused;
 
-  function processChunk(chunk: string): string {
-    return chunk
-      .split("\n")
-      .map(extractDeltaFromLine)
-      .filter(Boolean)
-      .join("");
-  }
 
-  // Handle input change
-  const handleInputChange = (e: Event): void => {
-    const target = e.target as HTMLInputElement;
-    updateState({ userInput: target.value });
-  };
 
   // Handle sending a message to the AI
   const handleSendMessage = useCallback(async (message: string) => {
@@ -523,7 +488,6 @@ Format as JSON with these fields:
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
         console.error('API Error:', {
           status: response.status,
           statusText: response.statusText,
@@ -564,23 +528,9 @@ Format as JSON with these fields:
 
 
 
-  // Handle form submission
-  const handleSubmit = async (e: { preventDefault: () => void }) => {
-    e.preventDefault();
-    if (!state.userInput.trim()) return;
 
-    // Add user message to transcript
-    const userMessage: Message = {
-      role: 'user',
-      content: state.userInput,
-      timestamp: new Date()
-    };
-    addMessage(userMessage);
-    updateState({ userInput: '' });
 
-    // Generate AI response
-    await handleSendMessage(state.userInput);
-  };
+
 
   // Add welcome message when interview starts
   useEffect(() => {
@@ -609,38 +559,50 @@ Format as JSON with these fields:
       localStorage.setItem('lastInterview', JSON.stringify(interviewData));
       sessionStorage.setItem("interviewData", JSON.stringify(interviewData));
     }
-    router.push("/feedback");
-  }, [state.intervieweeInfo, state.transcript, router]);
+  }, [state.intervieweeInfo, state.transcript]);
 
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="max-w-5xl mx-auto p-4 sm:p-6 lg:p-8">
+        {/* Header */}
+        <header className="mb-8">
+          <Link href="/" className="inline-block">
+            <Button variant="outline" size="sm" className="group">
+              <HomeIcon className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+              Back to Home
+            </Button>
+          </Link>
+        </header>
 
-
-return (
-  <main className="flex min-h-screen flex-col items-center justify-between p-4 md:p-24">
-    <div className="w-full max-w-4xl mx-auto">
-      <div className="flex justify-between items-center mb-4">
-        <Link href="/">
-          <Button variant="outline" size="sm">
-            <Home className="mr-2 h-4 w-4" />
-            Back to Home
-          </Button>
-        </Link>
-      </div>
-      <div className="mb-4">
-        {/* Welcome Card */}
-        {!interviewStarted && (
-          <Card className="w-full mb-4">
-            <CardContent className="p-6">
-              <h2 className="text-2xl font-bold mb-4">Welcome to Your Life Design Interview</h2>
-              <p className="mb-4">Your interviewee profile is being generated. The interview will begin shortly.</p>
+        <div className="space-y-6">
+          {/* Welcome Card */}
+          {!interviewStarted && (
+            <Card className="bg-card/90 backdrop-blur-sm border-border/50">
+              <CardContent className="p-6">
+              <div className="text-center space-y-4">
+                <h2 className="text-2xl md:text-3xl font-bold text-foreground">
+                  Welcome to Your Life Design Interview
+                </h2>
+                <p className="text-muted-foreground">
+                  Your interviewee profile is being generated. The interview will begin shortly.
+                </p>
+                <div className="flex justify-center pt-2">
+                  <div className="flex space-x-2">
+                    <div className="w-2 h-2 rounded-full bg-primary/70 animate-pulse"></div>
+                    <div className="w-2 h-2 rounded-full bg-primary/70 animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                    <div className="w-2 h-2 rounded-full bg-primary/70 animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         )}
 
         {/* Transcript */}
         {interviewStarted && (
-          <Card className="w-full mb-4">
-            <CardContent className="p-6">
-              <div className="space-y-4">
+          <Card className="bg-card/90 backdrop-blur-sm border-border/50">
+            <CardContent className="p-4 sm:p-6">
+              <div className="space-y-6">
                 {transcript.map((message, index) => (
                   <div
                     key={index}
@@ -649,23 +611,30 @@ return (
                     }`}
                   >
                     <div
-                      className={`max-w-3xl rounded-lg px-4 py-2 ${
+                      className={`max-w-3xl rounded-2xl px-4 py-3 ${
                         message.role === 'user'
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-gray-100 text-gray-800'
+                          ? 'bg-primary text-primary-foreground rounded-tr-none'
+                          : 'bg-muted/50 text-foreground rounded-tl-none border border-border/50'
                       }`}
                     >
-                      {message.content}
+                      <div className="prose prose-sm max-w-none">
+                        {message.content.split('\n').map((line, i) => (
+                          <p key={i} className="mb-2 last:mb-0">
+                            {line || <br />}
+                          </p>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 ))}
+                
                 {isGeneratingResponse && (
                   <div className="flex justify-start">
-                    <div className="bg-gray-100 rounded-lg px-4 py-2">
+                    <div className="bg-muted/50 rounded-2xl rounded-tl-none px-4 py-3 border border-border/50">
                       <div className="flex space-x-2">
-                        <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce"></div>
-                        <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                        <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                        <div className="w-2 h-2 rounded-full bg-primary/70 animate-bounce"></div>
+                        <div className="w-2 h-2 rounded-full bg-primary/70 animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                        <div className="w-2 h-2 rounded-full bg-primary/70 animate-bounce" style={{ animationDelay: '0.4s' }}></div>
                       </div>
                     </div>
                   </div>
@@ -678,35 +647,48 @@ return (
 
         {/* Message Input */}
         {interviewStarted && !interviewEnded && (
-          <div className="flex w-full space-x-2 mt-4">
-            <input
-              type="text"
-              placeholder="Type your question here..."
-              value={userInput}
-              onChange={(e: InputChangeEvent) => updateState({ userInput: e.target.value })}
-              onKeyDown={(e: KeyboardEvent) => {
-                if (e.key === 'Enter' && state.userInput.trim()) {
-                  e.preventDefault();
-                  handleSendMessage(state.userInput);
-                }
-              }}
-              disabled={isGeneratingResponse}
-              className="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-            <Button
-              onClick={() => handleSendMessage(userInput)}
-              disabled={!userInput.trim() || isGeneratingResponse}
-            >
-              <ArrowRight className="h-5 w-5" />
-              Send
-            </Button>
+          <div className="sticky bottom-0 bg-background/80 backdrop-blur-sm pb-6 pt-4 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 border-t border-border/50">
+            <div className="flex flex-col space-y-3 max-w-3xl mx-auto">
+              <div className="relative flex items-center">
+                <Input
+                  type="text"
+                  placeholder="Type your question here..."
+                  value={userInput}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => updateState({ userInput: e.target.value })}
+                  onKeyDown={(e: ReactKeyboardEvent<HTMLInputElement>) => {
+                    if (e.key === 'Enter' && !e.shiftKey && state.userInput.trim()) {
+                      e.preventDefault();
+                      handleSendMessage(state.userInput);
+                    }
+                  }}
+                  disabled={isGeneratingResponse}
+                  className="flex-grow pr-12 py-5 text-base bg-background shadow-sm"
+                />
+                <Button
+                  size="icon"
+                  className="absolute right-2 h-8 w-8 rounded-full"
+                  onClick={() => handleSendMessage(userInput)}
+                  disabled={!userInput.trim() || isGeneratingResponse}
+                >
+                  <ArrowRight className="h-4 w-4" />
+                  <span className="sr-only">Send message</span>
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground text-center">
+                Press Enter to send, Shift+Enter for a new line
+              </p>
+            </div>
           </div>
         )}
 
         {interviewEnded && (
-          <div className="flex justify-center w-full mt-4">
-            <Button variant="default" size="lg" onClick={endInterview}>
-              <FileText className="mr-2 h-5 w-5" />
+          <div className="flex justify-center mt-6">
+            <Button 
+              size="lg" 
+              className="group"
+              onClick={endInterview}
+            >
+              <FileText className="mr-2 h-5 w-5 transition-transform group-hover:translate-x-0.5" />
               View Feedback & Transcript
             </Button>
           </div>
@@ -714,19 +696,37 @@ return (
 
         {/* Instructions */}
         {interviewStarted && !interviewEnded && (
-          <div className="mt-8 bg-white p-4 rounded-lg shadow-sm">
-            <h3 className="font-semibold mb-2">Interview Tips</h3>
-            <ul className="list-disc pl-5 space-y-1 text-sm text-gray-600">
-              <li>Ask open-ended questions about their career journey</li>
-              <li>Inquire about key decisions and turning points</li>
-              <li>Ask about challenges they've faced and how they overcame them</li>
-              <li>Explore what they enjoy most about their profession</li>
-              <li>Ask what advice they would give to someone starting in their field</li>
-            </ul>
-          </div>
+          <Card className="bg-muted/30 border-border/50">
+            <CardContent className="p-4 sm:p-6">
+              <h3 className="text-lg font-semibold text-foreground mb-3">Interview Tips</h3>
+              <ul className="space-y-2 text-muted-foreground">
+                <li className="flex items-start">
+                  <span className="text-primary mr-2">•</span>
+                  <span>Ask open-ended questions about their career journey</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="text-primary mr-2">•</span>
+                  <span>Inquire about key decisions and turning points</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="text-primary mr-2">•</span>
+                  <span>Ask about challenges they've faced and how they overcame them</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="text-primary mr-2">•</span>
+                  <span>Explore what they enjoy most about their profession</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="text-primary mr-2">•</span>
+                  <span>Ask what advice they would give to someone starting in their field</span>
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
         )}
+        </div>
       </div>
+      <div ref={messagesEndRef} />
     </div>
-  </main>
-);
+  );
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -67,8 +67,7 @@ export default function Feedback() {
   const [error, setError] = useState<string | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [emailAddress, setEmailAddress] = useState("");
-  const [emailSent, setEmailSent] = useState(false);
-  const [downloadReady, setDownloadReady] = useState(false);
+  // Removed unused state variables: emailSent and downloadReady
 
   useEffect(() => {
     // Retrieve interview data from sessionStorage
