@@ -4,23 +4,15 @@ import {
   useState, 
   useEffect, 
   useCallback,
-  useRef,
-  KeyboardEvent as ReactKeyboardEvent,
-  ChangeEvent
+  useRef
 } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-
-// UI Components
-import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-
-// Icons
-import { ArrowRight, Home as HomeIcon, FileText } from 'lucide-react';
-
-// Types
-import { Message, IntervieweeInfo } from "@/types/interview"
+import { ArrowRight, FileText, Loader2, Home as HomeIcon } from 'lucide-react';
+import { Message, IntervieweeInfo } from '@/types/interview';
 
 interface InterviewState {
   transcript: Message[];
@@ -36,7 +28,7 @@ interface InterviewState {
 export default function Interview() {
   const searchParams = useSearchParams();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
+
   // State management
   const [state, setState] = useState<InterviewState>({
     transcript: [],
@@ -48,82 +40,71 @@ export default function Interview() {
     isGeneratingResponse: false,
     currentMessage: ''
   });
-  
-  // Scroll to bottom of messages
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [state.transcript]);
-  
-  // Helper function to update state
-  const updateState = (updates: Partial<InterviewState>) => {
-    setState(prev => ({ ...prev, ...updates }));
-  };
-  
-  // Destructure state for easier access
-  const {
-    transcript,
-    userInput,
-    interviewStarted,
-    interviewEnded,
-    isGeneratingResponse
+
+  const { 
+    transcript, 
+    userInput, 
+    interviewStarted, 
+    interviewEnded, 
+    intervieweeInfo, 
+    error, 
+    isGeneratingResponse, 
+    currentMessage 
   } = state;
-  
-  // Message management functions
-  const addMessage = useCallback((message: Message) => {
+
+  // Helper function to update state
+  const updateState = useCallback((partialState: Partial<InterviewState>) => {
+    setState(prev => ({ ...prev, ...partialState }));
+  }, []);
+
+  // Helper function to add a message to the transcript
+  const addMessage = useCallback((message: Omit<Message, 'timestamp' | 'isTyping'> & { isTyping?: boolean }) => {
     const newMessage: Message = {
-      role: message.role,
-      content: message.content,
+      ...message,
       timestamp: new Date(),
       isTyping: message.isTyping || false
     };
-    updateState({
-      transcript: [...state.transcript, newMessage]
-    });
-  }, [state.transcript]);
-  
-  const updateMessage = useCallback((index: number, update: Partial<Message>) => {
-    updateState({
-      transcript: state.transcript.map((msg, i) => 
-        i === index ? { ...msg, ...update } : msg
+    setState(prev => ({
+      ...prev,
+      transcript: [...prev.transcript, newMessage]
+    }));
+  }, []);
+
+  // Helper function to update an existing message
+  const updateMessage = useCallback((index: number, updates: Partial<Message>) => {
+    setState(prev => ({
+      ...prev,
+      transcript: prev.transcript.map((msg, i) => 
+        i === index ? { ...msg, ...updates } : msg
       )
-    });
-  }, [state.transcript]);
-  
-  const renderMessage = (message: Message, index: number): JSX.Element => {
+    }));
+  }, []);
+
+  // Helper function to render messages
+  const renderMessage = useCallback((message: Message, index: number) => {
     return (
-      <div key={index} className={`message ${message.role}`}>
-        {message.content}
+      <div 
+        key={index}
+        className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+      >
+        <div 
+          className={`max-w-3xl rounded-2xl px-4 py-3 ${
+            message.role === 'user' 
+              ? 'bg-primary text-primary-foreground rounded-tr-none' 
+              : 'bg-muted/50 text-foreground rounded-tl-none border border-border/50'
+          }`}
+        >
+          <div className="prose prose-sm max-w-none">
+            {message.content.split('\n').map((line, i) => (
+              <p key={i} className="mb-2 last:mb-0">
+                {line}
+              </p>
+            ))}
+          </div>
+        </div>
       </div>
     );
-  };
-  
-  // Start interview with generated profile
-  const startInterview = useCallback(async (profile: IntervieweeInfo): Promise<void> => {
-    try {
-      // Set interview as started and update state with profile
-      updateState({ 
-        interviewStarted: true,
-        isGeneratingResponse: true 
-      });
-      
-      console.log('Starting interview with profile:', profile);
-      
-      // Add welcome message
-      const welcomeMessage: Message = {
-        role: 'assistant',
-        content: `Welcome to your interview with ${profile.name}, a ${profile.age}-year-old ${profile.role} at ${profile.company}. How would you like to begin?`,
-        timestamp: new Date(),
-        isTyping: false
-      };
-      addMessage(welcomeMessage);
-      
-      updateState({ isGeneratingResponse: false });
-    } catch (error) {
-      console.error("Error starting interview:", error);
-    }
-  }, [updateState, addMessage]);
-
-
+  }, []);
 
   // Get parameters from URL with default values
   const profession = searchParams?.get("profession") ?? "Software Engineer";
@@ -138,19 +119,49 @@ export default function Interview() {
   const country = searchParams?.get("country") ?? "any";
   const careerChanger = searchParams?.get("careerChanger") === "true";
 
+  // Start interview with generated profile
+  const startInterview = useCallback(async (profile: IntervieweeInfo): Promise<void> => {
+    try {
+      // Set interview as started and update state with profile
+      updateState({ 
+        interviewStarted: true,
+        isGeneratingResponse: true,
+        intervieweeInfo: profile
+      });
+      
+      console.log('Starting interview with profile:', profile);
+      
+      // Add welcome message
+      const welcomeMessage: Omit<Message, 'timestamp'> = {
+        role: 'assistant',
+        content: `Welcome to your interview with ${profile.name}, a ${profile.age}-year-old ${profile.role} at ${profile.company}. How would you like to begin?`,
+        isTyping: false
+      };
+      
+      await addMessage(welcomeMessage);
+      updateState({ isGeneratingResponse: false });
+    } catch (error) {
+      console.error("Error starting interview:", error);
+      updateState({ 
+        error: 'Failed to start interview. Please try again.',
+        isGeneratingResponse: false 
+      });
+    }
+  }, [updateState, addMessage]);
+
   useEffect(() => {
     // Generate interviewee profile
-    generateIntervieweeProfile()
+    generateIntervieweeProfile();
 
     return () => {
       // Clean up any resources if needed
-    }
-  }, [])
+    };
+  }, []);
 
   useEffect(() => {
     // Scroll to bottom of messages
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [transcript])
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [transcript]);
 
   const generateIntervieweeProfile = async () => {
     try {
@@ -188,6 +199,7 @@ Format as JSON with these fields:
 - experience: Array of work experience
 - skills: Array of key skills
 - achievements: Array of notable achievements`;
+
 
       // Use the API route instead of direct PlayLab API calls
       console.log('Sending request to generate profile via API route...');
@@ -444,7 +456,7 @@ Format as JSON with these fields:
   }
 
   // Helper function to process chunks from the stream
-  function extractDeltaFromLine(line: string): string {
+  const extractDeltaFromLine = useCallback((line: string): string => {
     if (!line.startsWith("data:")) return "";
     try {
       const json = JSON.parse(line.replace("data: ", ""));
@@ -453,301 +465,183 @@ Format as JSON with these fields:
       console.error("Error parsing delta line:", error);
       return "";
     }
-  }
+  }, []);
   
-  // Mark unused functions as used to prevent warnings
-  const _unused = [addMessage, updateMessage, renderMessage, extractDeltaFromLine];
-  void _unused;
+  // Scroll to bottom when new messages are added
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [transcript]);
 
-
-
-  // Handle sending a message to the AI
-  const handleSendMessage = useCallback(async (message: string) => {
-    if (!message.trim()) return;
-    
-    updateState({ isGeneratingResponse: true });
+  // Handle sending messages
+  const handleSendMessage = useCallback(async (content: string) => {
+    if (!content.trim()) return;
 
     try {
-      // Format the message with context about the interviewee if available
-      const contextualMessage = state.intervieweeInfo 
-        ? `[Context: You are interviewing ${state.intervieweeInfo.name}, a ${state.intervieweeInfo.age}-year-old ${state.intervieweeInfo.role} at ${state.intervieweeInfo.company}]\n\nUser message: ${message}`
-        : message;
-
-      // Use the existing API route
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: contextualMessage,
-          history: state.transcript,
-          type: 'interview_chat'
-        }),
+      // Add user message to transcript
+      await addMessage({
+        role: 'user',
+        content: content.trim(),
+        isTyping: false
       });
 
-      if (!response.ok) {
-        console.error('API Error:', {
-          status: response.status,
-          statusText: response.statusText,
-          intervieweeInfo: state.intervieweeInfo
+      // Clear input and set loading state
+      updateState({ 
+        userInput: '',
+        isGeneratingResponse: true
+      });
+      
+      setTimeout(() => {
+        addMessage({
+          role: 'assistant',
+          content: 'Thank you for your message. This is a simulated response.',
+          isTyping: false
         });
-        throw new Error(`API request failed with status ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      // Add user message
-      const userMessage: Message = {
-        role: 'user',
-        content: message,
-        timestamp: new Date(),
-        isTyping: false
-      };
-      addMessage(userMessage);
-      
-      // Add AI response
-      const aiMessage: Message = {
-        role: 'assistant',
-        content: data.response || "I'm sorry, I couldn't generate a response.",
-        timestamp: new Date(),
-        isTyping: false
-      };
-      addMessage(aiMessage);
-      
-      updateState({ isGeneratingResponse: false, userInput: '' });
+        updateState({ isGeneratingResponse: false });
+      }, 1000);
     } catch (error) {
       console.error('Error sending message:', error);
       updateState({ 
         isGeneratingResponse: false,
-        error: 'Failed to get response. Please try again.'
+        error: 'Failed to send message. Please try again.'
       });
     }
-  }, [updateState, addMessage, state.transcript, state.intervieweeInfo]);
+  }, [addMessage, updateState]);
 
-
-
-
-
-
-
-  // Add welcome message when interview starts
-  useEffect(() => {
-    if (state.interviewStarted && !state.interviewEnded) {
-      const welcomeMessage: Message = {
-        role: 'assistant',
-        content: 'Welcome to your interview! How can I help you today?',
-        timestamp: new Date(),
-        isTyping: false
-      };
-      addMessage(welcomeMessage);
-    }
-  }, [state.interviewStarted, state.interviewEnded]);
-
-  // Handle interview end
+  // End the interview
   const endInterview = useCallback(() => {
-    const interviewData = {
-      profession: state.intervieweeInfo?.profession || '',
-      interviewee: state.intervieweeInfo?.name || "Professional",
-      transcript: state.transcript,
-      timestamp: new Date().toISOString()
-    };
-    
-    // Store interview data in localStorage or send to a server
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('lastInterview', JSON.stringify(interviewData));
-      sessionStorage.setItem("interviewData", JSON.stringify(interviewData));
+    if (window.confirm('Are you sure you want to end the interview?')) {
+      updateState({ 
+        interviewEnded: true,
+        isGeneratingResponse: false
+      });
       
-      // Redirect to feedback page
-      window.location.href = '/sample-feedback';
+      // Add a final message
+      addMessage({
+        role: 'assistant',
+        content: 'The interview has ended. Thank you for your time!',
+        isTyping: false
+      });
     }
-  }, [state.intervieweeInfo, state.transcript]);
+  }, [addMessage, updateState]);
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-5xl mx-auto p-4 sm:p-6 lg:p-8">
-        {/* Header */}
-        <header className="mb-8">
-          <Link href="/" className="inline-block">
-            <Button variant="outline" size="sm" className="group">
-              <HomeIcon className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
-              Back to Home
-            </Button>
-          </Link>
-        </header>
-
-        <div className="space-y-6">
-          {/* Welcome Card */}
-          {!interviewStarted && (
-            <Card className="bg-card/90 backdrop-blur-sm border-border/50">
-              <CardContent className="p-6">
-              <div className="text-center space-y-4">
-                <h2 className="text-2xl md:text-3xl font-bold text-foreground">
-                  Welcome to Your Life Design Interview
-                </h2>
-                <p className="text-muted-foreground">
-                  Your interviewee profile is being generated. The interview will begin shortly.
-                </p>
-                <div className="flex justify-center pt-2">
-                  <div className="flex space-x-2">
-                    <div className="w-2 h-2 rounded-full bg-primary/70 animate-pulse"></div>
-                    <div className="w-2 h-2 rounded-full bg-primary/70 animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                    <div className="w-2 h-2 rounded-full bg-primary/70 animate-pulse" style={{ animationDelay: '0.4s' }}></div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Transcript */}
-        {interviewStarted && (
-          <Card className="bg-card/90 backdrop-blur-sm border-border/50">
-            <CardContent className="p-4 sm:p-6">
-              <div className="space-y-6">
-                {transcript.map((message, index) => (
-                  <div
-                    key={index}
-                    className={`flex ${
-                      message.role === 'user' ? 'justify-end' : 'justify-start'
-                    }`}
-                  >
-                    <div
-                      className={`max-w-3xl rounded-2xl px-4 py-3 ${
-                        message.role === 'user'
-                          ? 'bg-primary text-primary-foreground rounded-tr-none'
-                          : 'bg-muted/50 text-foreground rounded-tl-none border border-border/50'
-                      }`}
-                    >
-                      <div className="prose prose-sm max-w-none">
-                        {message.content.split('\n').map((line, i) => (
-                          <p key={i} className="mb-2 last:mb-0">
-                            {line || <br />}
-                          </p>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                
-                {isGeneratingResponse && (
-                  <div className="flex justify-start">
-                    <div className="bg-muted/50 rounded-2xl rounded-tl-none px-4 py-3 border border-border/50">
-                      <div className="flex space-x-2">
-                        <div className="w-2 h-2 rounded-full bg-primary/70 animate-bounce"></div>
-                        <div className="w-2 h-2 rounded-full bg-primary/70 animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                        <div className="w-2 h-2 rounded-full bg-primary/70 animate-bounce" style={{ animationDelay: '0.4s' }}></div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                <div ref={messagesEndRef} />
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Message Input */}
-        {interviewStarted && !interviewEnded && (
-          <div className="sticky bottom-0 bg-background/90 backdrop-blur-sm pb-6 pt-4 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 border-t border-border/50">
-            <div className="flex flex-col space-y-3 max-w-3xl mx-auto">
-              <div className="relative flex items-center gap-2">
-                <Button 
-                  variant="outline" 
-                  className="bg-red-50 text-red-700 hover:bg-red-100 hover:text-red-800 border-red-200 whitespace-nowrap"
-                  onClick={() => updateState({ interviewEnded: true })}
-                >
-                  End Interview
-                </Button>
-                <div className="flex-1 relative">
-                  <Input
-                    type="text"
-                    placeholder="Type your question here..."
-                    value={userInput}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) => updateState({ userInput: e.target.value })}
-                    onKeyDown={(e: ReactKeyboardEvent<HTMLInputElement>) => {
-                      if (e.key === 'Enter' && !e.shiftKey && state.userInput.trim()) {
-                        e.preventDefault();
-                        handleSendMessage(state.userInput);
-                      }
-                    }}
-                    disabled={isGeneratingResponse}
-                    className="w-full pr-12 py-5 text-base bg-background shadow-sm"
-                  />
-                  <Button
-                    size="icon"
-                    className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full"
-                    onClick={() => handleSendMessage(userInput)}
-                    disabled={!userInput.trim() || isGeneratingResponse}
-                  >
-                    <ArrowRight className="h-4 w-4" />
-                    <span className="sr-only">Send message</span>
+      <div className="container mx-auto px-4 py-8">
+        <Card>
+          <CardContent>
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h1 className="text-2xl font-bold">Interview Session</h1>
+                <Link href="/" className="inline-block">
+                  <Button variant="outline" size="sm" className="group">
+                    <HomeIcon className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+                    Back to Home
                   </Button>
-                </div>
+                </Link>
               </div>
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">
-                  Press Enter to send, Shift+Enter for a new line
-                </p>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="text-muted-foreground hover:bg-transparent hover:text-foreground"
-                  onClick={() => updateState({ interviewEnded: true })}
-                >
-                  End Interview
-                </Button>
+              
+              <div className="space-y-4">
+                <main className="flex-1 container mx-auto p-4 md:p-6">
+                  <div className="max-w-5xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col" style={{ height: 'calc(100vh - 200px)' }}>
+                    {/* Messages */}
+                    <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
+                      {transcript.length === 0 ? (
+                        <div className="h-full flex flex-col items-center justify-center text-center p-8 text-gray-500">
+                          <FileText className="w-16 h-16 mb-4 text-gray-300" />
+                          <p>No messages yet. Start the conversation!</p>
+                        </div>
+                      ) : (
+                        transcript.map((message, index) => renderMessage(message, index))
+                      )}
+                      <div ref={messagesEndRef} />
+                    </div>
+
+                    {/* Input Area */}
+                    <div className="border-t border-gray-200 p-4 bg-white">
+                      <form 
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          if (state.userInput.trim()) {
+                            handleSendMessage(state.userInput);
+                          }
+                        }}
+                        className="flex gap-2"
+                      >
+                        <div className="relative flex-1">
+                          <Input
+                            type="text"
+                            value={state.userInput}
+                            onChange={(e) => updateState({ userInput: e.target.value })}
+                            placeholder="Type your message..."
+                            className="w-full pl-4 pr-12 py-3 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                            disabled={state.isGeneratingResponse}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey && state.userInput.trim()) {
+                                e.preventDefault();
+                                handleSendMessage(state.userInput);
+                              }
+                            }}
+                          />
+                          <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                            <kbd className="px-2 py-1 text-xs font-semibold text-gray-500 bg-gray-100 rounded-md">
+                              ⏎ Enter
+                            </kbd>
+                          </div>
+                        </div>
+                        <Button
+                          type="submit"
+                          disabled={!state.userInput.trim() || state.isGeneratingResponse}
+                          className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                        >
+                          {state.isGeneratingResponse ? (
+                            <div className="flex items-center gap-2">
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Sending...
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              Send
+                              <ArrowRight className="w-4 h-4" />
+                            </div>
+                          )}
+                        </Button>
+                      </form>
+
+                      {/* Interview Status */}
+                      <div className="mt-3 flex justify-between items-center">
+                        <div>
+                          {state.interviewStarted && !state.interviewEnded && (
+                            <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              <div className="w-2 h-2 mr-1.5 rounded-full bg-green-500"></div>
+                              Interview in progress
+                            </div>
+                          )}
+                          {state.interviewEnded && (
+                            <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                              Interview completed
+                            </div>
+                          )}
+                        </div>
+
+                        {state.interviewStarted && !state.interviewEnded && (
+                          <button
+                            onClick={endInterview}
+                            className="text-sm text-red-600 hover:text-red-800 font-medium"
+                          >
+                            End Interview
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </main>
               </div>
             </div>
-          </div>
-        )}
-
-        {interviewEnded && (
-          <div className="flex justify-center mt-6">
-            <Button 
-              size="lg" 
-              className="group"
-              onClick={endInterview}
-            >
-              <FileText className="mr-2 h-5 w-5 transition-transform group-hover:translate-x-0.5" />
-              View Feedback & Transcript
-            </Button>
-          </div>
-        )}
-
-        {/* Instructions */}
-        {interviewStarted && !interviewEnded && (
-          <Card className="bg-muted/30 border-border/50">
-            <CardContent className="p-4 sm:p-6">
-              <h3 className="text-lg font-semibold text-foreground mb-3">Interview Tips</h3>
-              <ul className="space-y-2 text-muted-foreground">
-                <li className="flex items-start">
-                  <span className="text-primary mr-2">•</span>
-                  <span>Ask open-ended questions about their career journey</span>
-                </li>
-                <li className="flex items-start">
-                  <span className="text-primary mr-2">•</span>
-                  <span>Inquire about key decisions and turning points</span>
-                </li>
-                <li className="flex items-start">
-                  <span className="text-primary mr-2">•</span>
-                  <span>Ask about challenges they've faced and how they overcame them</span>
-                </li>
-                <li className="flex items-start">
-                  <span className="text-primary mr-2">•</span>
-                  <span>Explore what they enjoy most about their profession</span>
-                </li>
-                <li className="flex items-start">
-                  <span className="text-primary mr-2">•</span>
-                  <span>Ask what advice they would give to someone starting in their field</span>
-                </li>
-              </ul>
-            </CardContent>
-          </Card>
-        )}
-        </div>
+          </CardContent>
+        </Card>
       </div>
-      <div ref={messagesEndRef} />
     </div>
   );
 }

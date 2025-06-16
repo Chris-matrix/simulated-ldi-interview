@@ -1,0 +1,315 @@
+"use client"
+
+import { 
+  useState, 
+  useEffect, 
+  useCallback,
+  useRef
+} from 'react';
+import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+
+// UI Components
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+
+// Icons
+import { ArrowRight, Home as HomeIcon, FileText } from 'lucide-react';
+
+// Types
+import { Message, IntervieweeInfo } from "@/types/interview"
+
+interface InterviewState {
+  transcript: Message[];
+  userInput: string;
+  interviewStarted: boolean;
+  interviewEnded: boolean;
+  intervieweeInfo: IntervieweeInfo | null;
+  error: string | null;
+  isGeneratingResponse: boolean;
+}
+
+export default function Interview() {
+  const searchParams = useSearchParams();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // State management
+  const [state, setState] = useState<InterviewState>({
+    transcript: [],
+    userInput: '',
+    interviewStarted: false,
+    interviewEnded: false,
+    intervieweeInfo: null,
+    error: null,
+    isGeneratingResponse: false
+  });
+
+  // Destructure state for easier access
+  const {
+    transcript,
+    userInput,
+    interviewStarted,
+    interviewEnded,
+    intervieweeInfo,
+    isGeneratingResponse,
+    error
+  } = state;
+  
+  // Scroll to bottom of messages
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [transcript]);
+  
+  // Helper function to update state
+  const updateState = useCallback((updates: Partial<InterviewState>) => {
+    setState(prev => ({ ...prev, ...updates }));
+  }, []);
+  
+  // Add message to transcript
+  const addMessage = useCallback((message: Omit<Message, 'timestamp'>) => {
+    const newMessage: Message = {
+      ...message,
+      timestamp: new Date(),
+      isTyping: message.isTyping || false
+    };
+    setState(prev => ({
+      ...prev,
+      transcript: [...prev.transcript, newMessage]
+    }));
+  }, []);
+  
+  // Update message in transcript
+  const updateMessage = useCallback((index: number, updates: Partial<Message>) => {
+    setState(prev => ({
+      ...prev,
+      transcript: prev.transcript.map((msg, i) => 
+        i === index ? { ...msg, ...updates } : msg
+      )
+    }));
+  }, []);
+
+  // Handle sending messages
+  const handleSendMessage = useCallback(async (content: string) => {
+    if (!content.trim()) return;
+
+    // Add user message to transcript
+    addMessage({
+      role: 'user',
+      content: content.trim(),
+      isTyping: false
+    });
+
+    // Clear input
+    updateState({ userInput: '' });
+    updateState({ isGeneratingResponse: true });
+    
+    try {
+      // Simulated response
+      setTimeout(() => {
+        addMessage({
+          role: 'assistant',
+          content: 'Thank you for your message. This is a simulated response.',
+          isTyping: false
+        });
+        updateState({ isGeneratingResponse: false });
+      }, 1000);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      updateState({ 
+        isGeneratingResponse: false,
+        error: 'Failed to send message. Please try again.'
+      });
+    }
+  }, [addMessage, updateState]);
+
+  // Start the interview
+  const startInterview = useCallback(() => {
+    updateState({ 
+      interviewStarted: true,
+      transcript: []
+    });
+  }, [updateState]);
+
+  // End the interview
+  const endInterview = useCallback(() => {
+    if (window.confirm('Are you sure you want to end the interview?')) {
+      updateState({ interviewEnded: true });
+      
+      // Add a final message
+      addMessage({
+        role: 'assistant',
+        content: 'The interview has ended. Thank you for your time!',
+        isTyping: false
+      });
+    }
+  }, [addMessage, updateState]);
+
+  // Render a single message
+  const renderMessage = useCallback((message: Message, index: number) => {
+    return (
+      <div 
+        key={index}
+        className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} mb-4`}
+      >
+        <div 
+          className={`max-w-3xl px-4 py-3 rounded-2xl ${
+            message.role === 'user' 
+              ? 'bg-blue-600 text-white rounded-br-none' 
+              : 'bg-white border border-gray-200 rounded-bl-none shadow-sm'
+          }`}
+        >
+          <div className="whitespace-pre-wrap">
+            {message.content}
+          </div>
+          <div className="text-xs mt-1 opacity-70">
+            {message.role === 'assistant' ? 'AI Interviewer' : 'You'}
+          </div>
+        </div>
+      </div>
+    );
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-5xl mx-auto p-4 sm:p-6 lg:p-8">
+        {/* Header */}
+        <header className="mb-8">
+          <Link href="/" className="inline-block">
+            <Button variant="outline" size="sm" className="group">
+              <HomeIcon className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+              Back to Home
+            </Button>
+          </Link>
+          
+          {/* Interview Info Banner */}
+          {intervieweeInfo && (
+            <div className="mt-3 p-3 bg-blue-50 border border-blue-100 rounded-lg">
+              <h3 className="font-medium text-blue-800">Interviewing:</h3>
+              <p className="text-sm text-blue-700">
+                {intervieweeInfo.name}
+                {intervieweeInfo.role ? `, ${intervieweeInfo.role}` : ''}
+                {intervieweeInfo.company ? ` at ${intervieweeInfo.company}` : ''}
+              </p>
+            </div>
+          )}
+        </header>
+
+        <main className="space-y-6">
+          {/* Welcome Card */}
+          {!interviewStarted ? (
+            <Card className="bg-white/90 backdrop-blur-sm border border-gray-200">
+              <CardContent className="p-6">
+                <div className="text-center space-y-4">
+                  <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
+                    Welcome to Your Interview
+                  </h2>
+                  <p className="text-gray-600">
+                    Your interview will begin shortly. Get ready to start the conversation!
+                  </p>
+                  <div className="flex justify-center pt-2">
+                    <Button 
+                      onClick={startInterview}
+                      className="mt-4"
+                    >
+                      Start Interview
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-6">
+              {/* Chat Container */}
+              <Card className="bg-white border border-gray-200 overflow-hidden">
+                <CardContent className="p-4 sm:p-6">
+                  <div className="space-y-4">
+                    {transcript.length === 0 ? (
+                      <div className="h-64 flex flex-col items-center justify-center text-center p-8 text-gray-500">
+                        <FileText className="w-16 h-16 mb-4 text-gray-300" />
+                        <h3 className="text-xl font-medium text-gray-800">No messages yet</h3>
+                        <p className="mt-2 text-gray-600">Start the conversation by sending a message</p>
+                      </div>
+                    ) : (
+                      transcript.map((message, index) => renderMessage(message, index))
+                    )}
+                    <div ref={messagesEndRef} />
+                  </div>
+                </CardContent>
+
+                {/* Input Area */}
+                <div className="border-t border-gray-200 p-4 bg-gray-50">
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (userInput.trim()) {
+                        handleSendMessage(userInput);
+                      }
+                    }}
+                    className="flex gap-2"
+                  >
+                    <div className="relative flex-1">
+                      <Input
+                        type="text"
+                        value={userInput}
+                        onChange={(e) => updateState({ userInput: e.target.value })}
+                        placeholder="Type your message..."
+                        className="w-full pl-4 pr-12 py-3 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        disabled={isGeneratingResponse}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey && userInput.trim()) {
+                            e.preventDefault();
+                            handleSendMessage(userInput);
+                          }
+                        }}
+                      />
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                        <div className="px-2 py-1 text-xs font-semibold text-gray-500 bg-gray-100 rounded-md">
+                          ⏎ Enter
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      type="submit"
+                      disabled={!userInput.trim() || isGeneratingResponse}
+                      className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {isGeneratingResponse ? 'Sending...' : 'Send'}
+                    </Button>
+                  </form>
+
+                  {/* Interview Status */}
+                  <div className="mt-3 flex justify-between items-center">
+                    <div>
+                      {interviewStarted && !interviewEnded && (
+                        <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          <div className="w-2 h-2 mr-1.5 rounded-full bg-green-500"></div>
+                          Interview in progress
+                        </div>
+                      )}
+                      {interviewEnded && (
+                        <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                          Interview completed
+                        </div>
+                      )}
+                    </div>
+
+                    {interviewStarted && !interviewEnded && (
+                      <button
+                        onClick={endInterview}
+                        className="text-sm text-red-600 hover:text-red-800 font-medium"
+                      >
+                        End Interview
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </Card>
+            </div>
+          )}
+        </main>
+      </div>
+    </div>
+  );
+}
