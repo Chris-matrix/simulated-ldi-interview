@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "prepare": "husky install"
+    "prepare": "husky"
   },
   "dependencies": {
     "@ai-sdk/openai": "^1.0.0",
@@ -76,7 +76,7 @@
     "husky": "^9.0.11",
     "lint-staged": "^15.2.2",
     "postcss": "^8.5.3",
-    "prettier": "^3.2.5",
+    "prettier": "^3.5.3",
     "tailwindcss": "^3.4.1",
     "ts-jest": "^29.1.2",
     "ts-node": "^10.9.2",
@@ -85,5 +85,14 @@
   "main": "index.js",
   "repository": "https://github.com/Chris-matrix/v0-simulated-ldi-interview.git",
   "author": "Chris-matrix <cwatt0046@lauchpadphilly.org>",
-  "license": "MIT"
+  "license": "MIT",
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,css,md}": [
+      "prettier --write"
+    ]
+  }
 }

@@ -1,67 +1,128 @@
+"use client"
+
+/**
+ * Sample Feedback Page Component
+ * 
+ * This component displays the feedback and transcript for a completed interview.
+ * It loads interview data from session storage and provides a tabbed interface
+ * to switch between feedback analysis and the full conversation transcript.
+ */
+
+import { useEffect, useState } from "react"
 import { Button } from "../../components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs"
 import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Star, AlertCircle, CheckCircle2, Lightbulb, FileText } from "lucide-react"
 
+/**
+ * Represents a single message in the interview transcript
+ */
+interface Message {
+  role: string;           // 'user' or 'assistant'
+  content: string;        // The message content
+  timestamp?: Date;        // When the message was sent
+  isTyping?: boolean;      // Whether the message is currently being typed
+}
+
+/**
+ * Represents the interview data structure stored in session storage
+ */
+interface InterviewData {
+  profession: string;     // The profession being interviewed about
+  interviewee: string;    // Name of the interviewee
+  transcript: Message[];  // Array of messages in the conversation
+  timestamp: string;      // When the interview was completed (ISO string)
+}
+
+/**
+ * SampleFeedback Component
+ * 
+ * Displays feedback and transcript for a completed interview.
+ * Loads data from session storage and provides navigation between views.
+ */
 export default function SampleFeedback() {
-  const sampleTranscript = [
-    {
-      role: "ai",
-      content:
-        "Hi there! I'm Dr. Sarah Chen, a pediatrician with 15 years of experience. I currently work at Children's Memorial Hospital as the Head of Pediatric Care. I'm happy to chat with you today about my career path and experiences in medicine. What would you like to know?",
-    },
-    {
-      role: "user",
-      content:
-        "Thanks for speaking with me, Dr. Chen. I'm interested in medicine, particularly pediatrics. Could you tell me about what led you to choose this specialty?",
-    },
-    {
-      role: "ai",
-      content:
-        "That's a great question. My path to pediatrics was influenced by several experiences. During medical school, I rotated through different specialties, but I found that I connected most with children and their families. There's something special about helping kids during their formative years and seeing them grow healthy and strong.\n\nBut what really cemented my decision was volunteering at a summer camp for children with chronic illnesses during my second year of med school. Seeing these kids with serious health challenges still finding joy and resilience was incredibly moving. I realized I wanted to be part of that journey—not just treating illnesses but supporting their overall development and well-being.\n\nI also appreciated the variety in pediatrics. You're not just treating the physical ailments but considering their developmental, emotional, and social needs too. Every day is different, and the relationships you build with families over years is rewarding in a way I didn't find in other specialties.",
-    },
-    {
-      role: "user",
-      content:
-        "That's really insightful. What would you say are the biggest challenges you've faced in your career, and how did you overcome them?",
-    },
-    {
-      role: "ai",
-      content:
-        "The challenges in pediatrics can be both emotional and practical. One of the biggest challenges early in my career was the emotional toll of caring for seriously ill children. There were cases where despite our best efforts, we couldn't save a child, and those moments are devastating. Learning to process that grief while still being present for other patients and their families was difficult.\n\nI overcame this by finding a support network of fellow physicians who understood these experiences. Our hospital also has a good system for debriefing after difficult cases. Over time, I've developed better emotional resilience, though I never want to become so detached that I lose empathy.\n\nAnother significant challenge was work-life balance, especially when my own children were young. The demanding hours and on-call schedules meant missing important moments with my family. I addressed this by setting clearer boundaries, negotiating a more flexible schedule as I advanced in my career, and being fully present when I was home.\n\nThe administrative burden in healthcare has also grown tremendously. The paperwork, electronic health records, and insurance requirements can take away from patient care. I've managed this by advocating for better systems within our hospital and delegating appropriately to our excellent nursing and support staff.\n\nFinally, keeping up with rapidly evolving medical knowledge is a constant challenge. I dedicate specific time each week to reading journals and attending continuing education. Being part of a teaching hospital helps too—the questions from residents and students keep me on my toes!",
-    },
-    {
-      role: "user",
-      content:
-        "Thank you for sharing that. I'm curious about your typical day. What does your schedule look like, and what aspects of your work do you find most fulfilling?",
-    },
-    {
-      role: "ai",
-      content:
-        "My typical day starts early—I'm usually at the hospital by 7:00 AM for rounds. As the department head, I see a mix of my own patients and consult on complex cases with our team of pediatricians and specialists.\n\nMornings are often filled with inpatient rounds, checking on children admitted to the hospital. We work as a team with residents, nurses, and specialists to develop and adjust treatment plans. I'll typically have teaching sessions with medical students or residents during this time too.\n\nAfternoons vary—some days I have clinic hours seeing outpatients for well-child visits, managing chronic conditions, or addressing acute illnesses. Other days involve administrative work, department meetings, or research activities. I also reserve time for calling parents with test results or discussing concerns.\n\nAs for the most fulfilling aspects, there are several that keep me passionate about my work. First is witnessing a child recover from a serious illness—seeing them regain their energy and return to normal childhood activities is incredibly rewarding.\n\nI also find great satisfaction in the long-term relationships with families. Watching children grow from infancy through adolescence, guiding their health journey, and becoming a trusted advisor to parents is a privilege.\n\nThe teaching aspect of my role is another source of fulfillment. Mentoring young doctors and medical students, seeing them develop their skills and confidence, feels like I'm multiplying my impact on children's health.\n\nFinally, the moments of connection with my young patients are priceless—when a previously shy or frightened child greets me with a smile or shares their accomplishments. Those small interactions remind me why I chose this path in the first place.",
-    },
-    {
-      role: "user",
-      content:
-        "That's really helpful to understand. Looking back at your career path, is there anything you would have done differently, or any advice you'd give to someone considering pediatrics today?",
-    },
-    {
-      role: "ai",
-      content:
-        "That's a thoughtful question. Looking back, there are a few things I might have approached differently.\n\nFirst, I would have sought more mentorship early in my career. I was somewhat independent and tried to figure everything out myself. Having found great mentors later, I realize how much guidance and support they provide—not just clinically but in navigating career decisions and work-life integration.\n\nI also would have been more intentional about self-care from the beginning. There's a culture of self-sacrifice in medicine that can lead to burnout. I pushed myself too hard in my residency and early practice years. Now I understand that taking care of myself makes me a better doctor for my patients.\n\nAs for advice to someone considering pediatrics today:\n\nFirst, get diverse experiences with children before committing. Volunteer in different settings—hospitals, community clinics, schools, camps. Pediatrics requires a genuine connection with children and their families.\n\nSecond, develop excellent communication skills. Much of pediatric care involves translating complex medical information to parents and connecting with children at their developmental level.\n\nThird, be prepared for the emotional aspects of the work. You'll share in families' greatest joys and deepest sorrows. Having healthy coping mechanisms and support systems is essential.\n\nFourth, embrace the preventive aspect of pediatrics. Some of your most important work will be in well-child care, anticipatory guidance, and advocacy—not just treating illnesses.\n\nFinally, recognize that pediatrics is evolving rapidly with advances in genetics, technology, and our understanding of developmental health. Maintain curiosity and a commitment to lifelong learning.\n\nDespite the challenges, pediatrics remains an incredibly rewarding specialty. The opportunity to positively impact a child's entire life trajectory is a profound privilege that continues to inspire me every day.",
-    },
-    {
-      role: "user",
-      content:
-        "Thank you so much for sharing your experiences and insights, Dr. Chen. This has been incredibly valuable for me as I consider my own path in medicine.",
-    },
-    {
-      role: "ai",
-      content:
-        "You're very welcome! I'm glad our conversation has been helpful as you explore your potential path in medicine. Your thoughtful questions show you're approaching this decision with the right mindset—considering both the rewards and challenges of the profession.\n\nPediatrics has given me a fulfilling career that aligns with my values and allows me to make a meaningful difference. Whatever specialty you ultimately choose, that alignment between your personal values and your daily work is what will sustain you through the demanding journey of medicine.\n\nStay curious, seek mentors, and trust your instincts about where you can best contribute and find fulfillment.\n\nI wish you the very best in your medical journey! If you have any other questions down the road, don't hesitate to reach out to physicians in your areas of interest. Most of us are happy to share our experiences with the next generation of doctors. Good luck!",
-    },
-  ]
+  // State management
+  const [interviewData, setInterviewData] = useState<InterviewData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"feedback" | "transcript">("feedback");
+
+  /**
+   * Load interview data from session storage when component mounts
+   */
+  useEffect(() => {
+    // Only run on client-side
+    if (typeof window !== 'undefined') {
+      try {
+        const savedData = sessionStorage.getItem("interviewData");
+        if (savedData) {
+          // Parse and validate the saved interview data
+          const parsedData = JSON.parse(savedData) as InterviewData;
+          setInterviewData(parsedData);
+        }
+      } catch (error) {
+        console.error("Error loading interview data:", error);
+      } finally {
+        // Always set loading to false when done
+        setIsLoading(false);
+      }
+    }
+  }, []);
+
+  /**
+   * Render loading state while data is being loaded
+   */
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="flex flex-col items-center space-y-4">
+          <div 
+            className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"
+            aria-hidden="true"
+          />
+          <p className="text-muted-foreground">Loading your interview data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  /**
+   * Render error state when no interview data is found
+   */
+  if (!interviewData) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-4 text-center">
+        <FileText 
+          className="w-16 h-16 text-muted-foreground mb-4" 
+          aria-hidden="true"
+        />
+        <h1 className="text-2xl font-bold mb-2">No Interview Data Found</h1>
+        <p className="text-muted-foreground mb-6">
+          We couldn't find any interview data to display. This might be because:
+        </p>
+        <ul className="text-left list-disc pl-5 mb-6 text-muted-foreground space-y-2">
+          <li>The interview wasn't properly saved</li>
+          <li>You've cleared your browser's session storage</li>
+          <li>You're accessing this page directly without completing an interview</li>
+        </ul>
+        <Link href="/" aria-label="Return to home page">
+          <Button>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Home
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+  
+  // Extract transcript from interview data, defaulting to empty array if not available
+  const transcript = interviewData.transcript || [];
+  
+  /**
+   * Sample feedback data structure
+   * In a production environment, this would likely come from an API
+   * or be generated based on the interview content
+   */
 
   const sampleFeedback = {
     overallAssessment:
@@ -118,11 +179,17 @@ export default function SampleFeedback() {
     <main className="flex min-h-screen flex-col items-center p-4 md:p-8 bg-gray-50">
       <div className="max-w-4xl w-full">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold tracking-tight">Sample Interview Feedback</h1>
-          <p className="text-gray-600 mt-1">Pediatrician • Dr. Sarah Chen • Sample Interview</p>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Interview Feedback</h1>
+          <p className="text-gray-600 mt-1">
+            {interviewData.profession} • {interviewData.interviewee} • {new Date(interviewData.timestamp).toLocaleDateString()}
+          </p>
         </div>
 
-        <Tabs defaultValue="feedback" className="w-full">
+        <Tabs 
+          value={activeTab} 
+          onValueChange={(value) => setActiveTab(value as "feedback" | "transcript")}
+          className="w-full"
+        >
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="feedback">Feedback & Analysis</TabsTrigger>
             <TabsTrigger value="transcript">Full Transcript</TabsTrigger>
@@ -245,31 +312,126 @@ export default function SampleFeedback() {
             <Card>
               <CardHeader>
                 <CardTitle>Interview Transcript</CardTitle>
-                <CardDescription>Conversation between student and Dr. Sarah Chen (Pediatrician)</CardDescription>
+                <CardDescription>
+                  Conversation between you and {interviewData.interviewee} ({interviewData.profession})
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {sampleTranscript.map((message, index) => (
-                  <div key={index} className="pb-4 border-b border-gray-100 last:border-0">
-                    <p className="font-semibold text-sm text-gray-500 mb-1">
-                      {message.role === "user" ? "Student" : "Dr. Sarah Chen"}
-                    </p>
-                    <p>{message.content}</p>
+                {transcript.length > 0 ? (
+                  transcript.map((message, index) => (
+                    <div key={index} className="pb-4 border-b border-gray-100 last:border-0">
+                      <p className={`font-semibold text-sm mb-1 ${
+                        message.role === "user" ? "text-blue-600" : "text-gray-600"
+                      }`}>
+                        {message.role === "user" ? "You" : interviewData.interviewee}
+                      </p>
+                      <p className="text-gray-800 whitespace-pre-line">{message.content}</p>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    No transcript available for this interview.
                   </div>
-                ))}
+                )}
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
 
-        <div className="mt-8">
+        {interviewData && (
+          <div className="w-full space-y-6 mt-8">
+            <Card className="border-green-200 bg-green-50">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-6 w-6 text-green-600" />
+                  <CardTitle>Interview Completed</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p>Your interview has been successfully completed and analyzed. Below is your performance feedback.</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Star className="h-6 w-6 text-yellow-500 fill-yellow-500" />
+                  <CardTitle>Your Performance Rating</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-2 mb-4">
+                  {[...Array(4)].map((_, i) => (
+                    <Star key={i} className="h-6 w-6 text-yellow-500 fill-yellow-500" />
+                  ))}
+                  <Star className="h-6 w-6 text-gray-300 fill-gray-300" />
+                  <span className="ml-2 text-gray-600">4/5 - Very Good</span>
+                </div>
+                <p className="text-gray-700">
+                  You demonstrated strong interviewing skills with well-structured questions and good follow-up. 
+                  Your ability to build rapport with the interviewee was excellent.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="h-6 w-6 text-blue-600" />
+                  <CardTitle>Areas for Improvement</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="bg-blue-100 p-2 rounded-full mt-0.5">
+                    <Lightbulb className="h-4 w-4 text-blue-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium">Deeper Follow-ups</h4>
+                    <p className="text-sm text-gray-600">Try to ask more follow-up questions to explore interesting points in more depth.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="bg-blue-100 p-2 rounded-full mt-0.5">
+                    <Lightbulb className="h-4 w-4 text-blue-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium">Personal Connection</h4>
+                    <p className="text-sm text-gray-600">Share a bit more about yourself to create a stronger connection with the interviewee.</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        <div className="mt-8 flex justify-between items-center">
           <Link href="/">
             <Button variant="outline">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Home
             </Button>
           </Link>
+          <div className="flex space-x-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setActiveTab(activeTab === "feedback" ? "transcript" : "feedback")}
+            >
+              {activeTab === "feedback" ? (
+                <>
+                  <FileText className="mr-2 h-4 w-4" />
+                  View Transcript
+                </>
+              ) : (
+                <>
+                  <FileText className="mr-2 h-4 w-4" />
+                  View Feedback
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </div>
     </main>
-  )
+  );
 }

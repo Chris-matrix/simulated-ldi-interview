@@ -6,8 +6,7 @@ import {
   useCallback,
   useRef,
   KeyboardEvent as ReactKeyboardEvent,
-  ChangeEvent,
-  FormEvent
+  ChangeEvent
 } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -205,7 +204,7 @@ Format as JSON with these fields:
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        // Log error details without assigning to a variable
         console.error('API Error:', {
           status: response.status,
           statusText: response.statusText
@@ -558,6 +557,9 @@ Format as JSON with these fields:
     if (typeof window !== 'undefined') {
       localStorage.setItem('lastInterview', JSON.stringify(interviewData));
       sessionStorage.setItem("interviewData", JSON.stringify(interviewData));
+      
+      // Redirect to feedback page
+      window.location.href = '/sample-feedback';
     }
   }, [state.intervieweeInfo, state.transcript]);
 
@@ -647,36 +649,55 @@ Format as JSON with these fields:
 
         {/* Message Input */}
         {interviewStarted && !interviewEnded && (
-          <div className="sticky bottom-0 bg-background/80 backdrop-blur-sm pb-6 pt-4 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 border-t border-border/50">
+          <div className="sticky bottom-0 bg-background/90 backdrop-blur-sm pb-6 pt-4 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 border-t border-border/50">
             <div className="flex flex-col space-y-3 max-w-3xl mx-auto">
-              <div className="relative flex items-center">
-                <Input
-                  type="text"
-                  placeholder="Type your question here..."
-                  value={userInput}
-                  onChange={(e: ChangeEvent<HTMLInputElement>) => updateState({ userInput: e.target.value })}
-                  onKeyDown={(e: ReactKeyboardEvent<HTMLInputElement>) => {
-                    if (e.key === 'Enter' && !e.shiftKey && state.userInput.trim()) {
-                      e.preventDefault();
-                      handleSendMessage(state.userInput);
-                    }
-                  }}
-                  disabled={isGeneratingResponse}
-                  className="flex-grow pr-12 py-5 text-base bg-background shadow-sm"
-                />
-                <Button
-                  size="icon"
-                  className="absolute right-2 h-8 w-8 rounded-full"
-                  onClick={() => handleSendMessage(userInput)}
-                  disabled={!userInput.trim() || isGeneratingResponse}
+              <div className="relative flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  className="bg-red-50 text-red-700 hover:bg-red-100 hover:text-red-800 border-red-200 whitespace-nowrap"
+                  onClick={() => updateState({ interviewEnded: true })}
                 >
-                  <ArrowRight className="h-4 w-4" />
-                  <span className="sr-only">Send message</span>
+                  End Interview
+                </Button>
+                <div className="flex-1 relative">
+                  <Input
+                    type="text"
+                    placeholder="Type your question here..."
+                    value={userInput}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => updateState({ userInput: e.target.value })}
+                    onKeyDown={(e: ReactKeyboardEvent<HTMLInputElement>) => {
+                      if (e.key === 'Enter' && !e.shiftKey && state.userInput.trim()) {
+                        e.preventDefault();
+                        handleSendMessage(state.userInput);
+                      }
+                    }}
+                    disabled={isGeneratingResponse}
+                    className="w-full pr-12 py-5 text-base bg-background shadow-sm"
+                  />
+                  <Button
+                    size="icon"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full"
+                    onClick={() => handleSendMessage(userInput)}
+                    disabled={!userInput.trim() || isGeneratingResponse}
+                  >
+                    <ArrowRight className="h-4 w-4" />
+                    <span className="sr-only">Send message</span>
+                  </Button>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">
+                  Press Enter to send, Shift+Enter for a new line
+                </p>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-muted-foreground hover:bg-transparent hover:text-foreground"
+                  onClick={() => updateState({ interviewEnded: true })}
+                >
+                  End Interview
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground text-center">
-                Press Enter to send, Shift+Enter for a new line
-              </p>
             </div>
           </div>
         )}

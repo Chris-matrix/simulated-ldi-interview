@@ -223,8 +223,12 @@ export default function SelectProfession() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-4 md:p-24 bg-gray-50">
-      <div className="max-w-3xl w-full">
+    <main className="min-h-screen bg-gradient-to-b from-background to-muted/20 p-4 md:p-8">
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl font-bold tracking-tight mb-2 text-foreground">Select Your Profession</h1>
+          <p className="text-muted-foreground">Choose or enter a profession to start your mock interview</p>
+        </div>
         <Card className="bg-white shadow-md">
           <CardHeader>
             <CardTitle className="text-2xl">Design Your Interview Experience</CardTitle>
@@ -247,7 +251,7 @@ export default function SelectProfession() {
               
               <TabsContent value="profession" className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="profession">Profession</Label>
+                  <Label htmlFor="profession" className="text-foreground">Profession</Label>
                   <Select onValueChange={handleProfessionChange}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select a profession" />
@@ -295,7 +299,7 @@ export default function SelectProfession() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="education">Education Level</Label>
+                  <Label htmlFor="education" className="text-foreground">Education Level</Label>
                   <Select onValueChange={setEducation}>
                     <SelectTrigger>
                       <SelectValue placeholder="Any" />
@@ -312,7 +316,7 @@ export default function SelectProfession() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="industry">Industry</Label>
+                  <Label htmlFor="industry" className="text-foreground">Industry</Label>
                   <Select onValueChange={setIndustry}>
                     <SelectTrigger>
                       <SelectValue placeholder="Any" />
@@ -329,7 +333,7 @@ export default function SelectProfession() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="companyType">Company Type</Label>
+                  <Label htmlFor="companyType" className="text-foreground">Company Type</Label>
                   <Select onValueChange={setCompanyType}>
                     <SelectTrigger>
                       <SelectValue placeholder="Any" />
@@ -346,7 +350,7 @@ export default function SelectProfession() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="specificCompany">Specific Company (Optional)</Label>
+                  <Label htmlFor="specificCompany" className="text-foreground">Specific Company (Optional)</Label>
                   <Input
                     id="specificCompany"
                     placeholder="e.g. Google, NASA, etc."
@@ -356,7 +360,7 @@ export default function SelectProfession() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="workStyle">Work Style</Label>
+                  <Label htmlFor="workStyle" className="text-foreground">Work Style</Label>
                   <Select onValueChange={setWorkStyle}>
                     <SelectTrigger>
                       <SelectValue placeholder="Any" />
@@ -387,7 +391,7 @@ export default function SelectProfession() {
               
               <TabsContent value="location" className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="region">Region</Label>
+                  <Label htmlFor="region" className="text-foreground">Region</Label>
                   <Select onValueChange={setRegion}>
                     <SelectTrigger>
                       <SelectValue placeholder="Any" />
@@ -406,7 +410,7 @@ export default function SelectProfession() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="country">Country (Optional)</Label>
+                  <Label htmlFor="country" className="text-foreground">Country (Optional)</Label>
                   <Input
                     id="country"
                     placeholder="e.g. United States, Japan, etc."
@@ -416,7 +420,7 @@ export default function SelectProfession() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="city">City (Optional)</Label>
+                  <Label htmlFor="city" className="text-foreground">City (Optional)</Label>
                   <Input
                     id="city"
                     placeholder="e.g. New York, London, etc."
@@ -433,15 +437,34 @@ export default function SelectProfession() {
                 {formError}
               </div>
             )}
-            <div className="flex justify-between w-full">
-              <Link href="/">
-                <Button variant="outline">
-                  <ArrowLeft className="mr-2 h-4 w-4" /> Back
+            <div className="flex flex-col sm:flex-row justify-between w-full gap-4">
+              <div className="flex items-center">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="careerChanger" 
+                    checked={careerChanger}
+                    onCheckedChange={(checked) => setCareerChanger(checked as boolean)}
+                    className="h-5 w-5 rounded border-border"
+                  />
+                  <Label htmlFor="careerChanger" className="text-sm font-medium leading-none text-foreground cursor-pointer">
+                    I'm considering a career change
+                  </Label>
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Link href="/" className="w-full sm:w-auto">
+                  <Button variant="outline" className="w-full">
+                    <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                  </Button>
+                </Link>
+                <Button 
+                  onClick={handleSubmit} 
+                  disabled={!profession && !customProfession}
+                  className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground"
+                >
+                  Start Interview <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-              </Link>
-              <Button onClick={handleSubmit} disabled={!profession && !customProfession}>
-                Start Interview <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+              </div>
             </div>
           </CardFooter>
         </Card>
