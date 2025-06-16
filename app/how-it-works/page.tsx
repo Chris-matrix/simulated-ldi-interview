@@ -5,27 +5,27 @@ import { ArrowLeft, Mic, FileText } from "lucide-react"
 
 export default function HowItWorks() {
   return (
-    <main className="flex min-h-screen flex-col items-center p-4 md:p-24 bg-gray-50">
+    <main className="flex min-h-screen flex-col items-center p-4 md:p-24 bg-gray-50 dark:bg-gray-900">
       <div className="max-w-4xl w-full space-y-8">
         <div className="text-center space-y-4">
-          <h1 className="text-4xl font-bold tracking-tight text-gray-900">How It Works</h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white">How It Works</h1>
+          <p className="text-xl text-gray-800 dark:text-gray-200 max-w-2xl mx-auto">
             The Life Design Interview Simulator uses AI to create realistic interview experiences with professionals in
             your field of interest.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-12">
-          <Card className="bg-white shadow-md">
+          <Card className="bg-white dark:bg-gray-800 shadow-md">
             <CardHeader>
               <div className="flex items-center space-x-2">
-                <FileText className="h-6 w-6 text-gray-600" />
-                <CardTitle>1. Select a Profession</CardTitle>
+                <FileText className="h-6 w-6 text-gray-600 dark:text-gray-300" />
+                <CardTitle className="text-gray-900 dark:text-white">1. Select a Profession</CardTitle>
               </div>
-              <CardDescription>Choose who you want to interview</CardDescription>
+              <CardDescription className="text-gray-600 dark:text-gray-300">Choose who you want to interview</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-700">
+              <p className="text-gray-800 dark:text-gray-200">
                 Start by selecting a profession you're interested in exploring. You can also specify demographic
                 preferences like years of experience, gender, ethnicity, and region to create a diverse range of
                 perspectives.
@@ -33,33 +33,33 @@ export default function HowItWorks() {
             </CardContent>
           </Card>
 
-          <Card className="bg-white shadow-md">
+          <Card className="bg-white dark:bg-gray-800 shadow-md">
             <CardHeader>
               <div className="flex items-center space-x-2">
-                <Mic className="h-6 w-6 text-gray-600" />
-                <CardTitle>2. Voice Conversation(future-feature pending)</CardTitle>
+                <Mic className="h-6 w-6 text-gray-600 dark:text-gray-300" />
+                <CardTitle className="text-gray-900 dark:text-white">2. Voice Conversation (Future Feature)</CardTitle>
               </div>
-              <CardDescription>Speak naturally with the AI professional</CardDescription>
+              <CardDescription className="text-gray-600 dark:text-gray-300">Speak naturally with the AI professional</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-700">
-                The simulator will be possibly include speech recognition to capture your questions and text-to-speech to deliver responses.
+              <p className="text-gray-800 dark:text-gray-200">
+                The simulator will possibly include speech recognition to capture your questions and text-to-speech to deliver responses.
                 This creates a natural, conversational experience that mimics a real interview. Ask about their career
                 path, decisions, challenges, and advice.
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-white shadow-md">
+          <Card className="bg-white dark:bg-gray-800 shadow-md">
             <CardHeader>
               <div className="flex items-center space-x-2">
-                <FileText className="h-6 w-6 text-gray-600" />
-                <CardTitle>3. AI-Generated Responses</CardTitle>
+                <FileText className="h-6 w-6 text-gray-600 dark:text-gray-300" />
+                <CardTitle className="text-gray-900 dark:text-white">3. AI-Generated Responses</CardTitle>
               </div>
-              <CardDescription>Get authentic career insights</CardDescription>
+              <CardDescription className="text-gray-600 dark:text-gray-300">Get authentic career insights</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-700">
+              <p className="text-gray-800 dark:text-gray-200">
                 Our AI creates realistic professional profiles with detailed backgrounds, career trajectories, and
                 experiences. The responses are tailored to the profession and demographic details you selected,
                 providing authentic perspectives on career paths.
@@ -67,16 +67,16 @@ export default function HowItWorks() {
             </CardContent>
           </Card>
 
-          <Card className="bg-white shadow-md">
+          <Card className="bg-white dark:bg-gray-800 shadow-md">
             <CardHeader>
               <div className="flex items-center space-x-2">
-                <FileText className="h-6 w-6 text-gray-600" />
-                <CardTitle>4. Feedback & Transcript</CardTitle>
+                <FileText className="h-6 w-6 text-gray-600 dark:text-gray-300" />
+                <CardTitle className="text-gray-900 dark:text-white">4. Feedback & Transcript</CardTitle>
               </div>
-              <CardDescription>Review and improve your interviewing skills</CardDescription>
+              <CardDescription className="text-gray-600 dark:text-gray-300">Review and improve your interviewing skills</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-700">
+              <p className="text-gray-800 dark:text-gray-200">
                 After the interview, you'll receive a detailed transcript along with personalized feedback on your
                 interviewing skills. The feedback highlights your strengths, areas for improvement, and suggestions for
                 more effective questions to ask in future interviews.
@@ -85,9 +85,9 @@ export default function HowItWorks() {
           </Card>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-md mt-8">
-          <h2 className="text-2xl font-semibold mb-4">Tips for Effective Life Design Interviews</h2>
-          <ul className="list-disc pl-5 space-y-2 text-gray-700">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mt-8">
+          <h2 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-white">Tips for Effective Life Design Interviews</h2>
+          <ul className="list-disc pl-5 space-y-2 text-gray-700 dark:text-gray-300">
             <li>Ask open-ended questions that can't be answered with just "yes" or "no"</li>
             <li>Focus on the person's journey and decision-making process, not just facts about the job</li>
             <li>Inquire about challenges they've faced and how they overcame them</li>
@@ -100,14 +100,16 @@ export default function HowItWorks() {
 
         <div className="flex justify-between items-center mt-8">
           <Link href="/">
-            <Button variant="outline">
+            <Button variant="outline" className="text-gray-900 dark:text-white">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Home
             </Button>
           </Link>
 
           <Link href="/select-profession">
-            <Button size="lg">Start an Interview</Button>
+            <Button size="lg" className="text-white">
+              Start an Interview
+            </Button>
           </Link>
         </div>
       </div>

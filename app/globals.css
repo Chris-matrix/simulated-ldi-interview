@@ -95,4 +95,29 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Chat message styles */
+  .prose {
+    color: inherit;
+  }
+  
+  .prose p {
+    margin-bottom: 0.5rem;
+    color: inherit;
+  }
+  
+  /* Ensure proper contrast for chat bubbles */
+  .bg-muted\/50 {
+    color: hsl(var(--foreground));
+  }
+  
+  /* Style for user messages */
+  .bg-primary {
+    color: white;
+  }
+  
+  /* Style for assistant messages */
+  .bg-muted {
+    color: hsl(var(--foreground));
+  }
 }

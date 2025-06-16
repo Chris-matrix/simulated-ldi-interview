@@ -223,27 +223,27 @@ export default function SelectProfession() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-background to-muted/20 p-4 md:p-8">
+    <main className="min-h-screen bg-white dark:bg-gray-900 p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold tracking-tight mb-2 text-foreground">Select Your Profession</h1>
-          <p className="text-muted-foreground">Choose or enter a profession to start your mock interview</p>
+          <h1 className="text-3xl font-bold tracking-tight mb-2 text-gray-900 dark:text-white">Select Your Profession</h1>
+          <p className="text-gray-600 dark:text-gray-300">Choose or enter a profession to start your mock interview</p>
         </div>
-        <Card className="bg-white shadow-md">
+        <Card className="bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700">
           <CardHeader>
-            <CardTitle className="text-2xl">Design Your Interview Experience</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-2xl text-gray-900 dark:text-white">Design Your Interview Experience</CardTitle>
+            <CardDescription className="text-gray-600 dark:text-gray-300">
               Customize the professional you'd like to interview based on career and background
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="bg-white dark:bg-gray-800">
             <Tabs defaultValue="profession" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="profession" className="flex items-center">
+              <TabsList className="grid w-full grid-cols-2 mb-6 bg-gray-100 dark:bg-gray-700">
+                <TabsTrigger value="profession" className="flex items-center text-gray-700 dark:text-gray-200 data-[state=active]:bg-white data-[state=active]:text-blue-600 dark:data-[state=active]:bg-gray-800 dark:data-[state=active]:text-blue-400">
                   <Briefcase className="mr-2 h-4 w-4" />
                   Career
                 </TabsTrigger>
-                <TabsTrigger value="location" className="flex items-center">
+                <TabsTrigger value="location" className="flex items-center text-gray-700 dark:text-gray-200 data-[state=active]:bg-white data-[state=active]:text-blue-600 dark:data-[state=active]:bg-gray-800 dark:data-[state=active]:text-blue-400">
                   <Globe className="mr-2 h-4 w-4" />
                   Location
                 </TabsTrigger>

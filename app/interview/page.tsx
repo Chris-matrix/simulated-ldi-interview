@@ -90,8 +90,8 @@ export default function Interview() {
         <div 
           className={`max-w-3xl rounded-2xl px-4 py-3 ${
             message.role === 'user' 
-              ? 'bg-primary text-primary-foreground rounded-tr-none' 
-              : 'bg-muted/50 text-foreground rounded-tl-none border border-border/50'
+              ? 'bg-blue-600 text-white rounded-tr-none' 
+              : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-tl-none border border-gray-200 dark:border-gray-700'
           }`}
         >
           <div className="prose prose-sm max-w-none">
