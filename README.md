@@ -271,10 +271,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Support
 
-- **Documentation**: [Technical Docs](TECHNICAL_DOCS.md)
-- **User Guide**: [User Guide](USER_GUIDE.md)
-- **Issues**: [GitHub Issues](https://github.com/your-username/repo/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-username/repo/discussions)
+- **Documentation**: [Technical Doc](https://docs.google.com/document/d/1svsKOmh1nqOZL3v6pPpcp5YjbZRaGE_p8-Ffp2wH90Q/edit?usp=sharing)
+- **User Guide**: [User Guide](https://docs.google.com/document/d/1b2eo76-KQhUgk6TOVdNDrUrx_2lJWp6Ry7z1OwnqLRI/edit?usp=sharing)
 
 ---
 
