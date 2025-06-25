@@ -1,7 +1,7 @@
 import { Button } from "../../components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card"
 import Link from "next/link"
-import { ArrowLeft, Mic, FileText } from "lucide-react"
+import { ArrowLeft, FileText } from "lucide-react"
 
 export default function HowItWorks() {
   return (
@@ -15,7 +15,7 @@ export default function HowItWorks() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
           <Card className="bg-white dark:bg-gray-800 shadow-md">
             <CardHeader>
               <div className="flex items-center space-x-2">
@@ -36,25 +36,8 @@ export default function HowItWorks() {
           <Card className="bg-white dark:bg-gray-800 shadow-md">
             <CardHeader>
               <div className="flex items-center space-x-2">
-                <Mic className="h-6 w-6 text-gray-600 dark:text-gray-300" />
-                <CardTitle className="text-gray-900 dark:text-white">2. Voice Conversation (Future Feature)</CardTitle>
-              </div>
-              <CardDescription className="text-gray-600 dark:text-gray-300">Speak naturally with the AI professional</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-800 dark:text-gray-200">
-                The simulator will possibly include speech recognition to capture your questions and text-to-speech to deliver responses.
-                This creates a natural, conversational experience that mimics a real interview. Ask about their career
-                path, decisions, challenges, and advice.
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white dark:bg-gray-800 shadow-md">
-            <CardHeader>
-              <div className="flex items-center space-x-2">
                 <FileText className="h-6 w-6 text-gray-600 dark:text-gray-300" />
-                <CardTitle className="text-gray-900 dark:text-white">3. AI-Generated Responses</CardTitle>
+                <CardTitle className="text-gray-900 dark:text-white">2. AI-Generated Responses</CardTitle>
               </div>
               <CardDescription className="text-gray-600 dark:text-gray-300">Get authentic career insights</CardDescription>
             </CardHeader>
@@ -71,7 +54,7 @@ export default function HowItWorks() {
             <CardHeader>
               <div className="flex items-center space-x-2">
                 <FileText className="h-6 w-6 text-gray-600 dark:text-gray-300" />
-                <CardTitle className="text-gray-900 dark:text-white">4. Feedback & Transcript</CardTitle>
+                <CardTitle className="text-gray-900 dark:text-white">3. Feedback & Transcript</CardTitle>
               </div>
               <CardDescription className="text-gray-600 dark:text-gray-300">Review and improve your interviewing skills</CardDescription>
             </CardHeader>
