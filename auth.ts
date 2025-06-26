@@ -1,33 +1,18 @@
 import NextAuth from "next-auth";
-import { authConfig } from "./app/api/auth/[...nextauth]/route";
+import { getAuthConfig } from "./auth.config";
 
-// Create auth instance with configuration
-const { handlers, auth, signIn, signOut } = NextAuth({
-  ...authConfig,
-  session: { strategy: "jwt" },
-  pages: {
-    signIn: "/login",
-    error: "/login",
-  },
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.role = user.role || 'USER';
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      if (token?.id) {
-        session.user = {
-          ...session.user,
-          id: token.id as string,
-          role: token.role as string,
-        };
-      }
-      return session;
-    },
-  },
-});
+// Initialize NextAuth with configuration
+const handler = NextAuth(getAuthConfig());
 
-export { handlers, auth, signIn, signOut };
+// Export the handler for API routes
+export { handler as GET, handler as POST };
+
+// Export auth functions for server components
+export const auth = handler.auth;
+
+// Export auth utilities for client components
+export const signIn = handler.signIn;
+export const signOut = handler.signOut;
+
+// Re-export types for convenience
+export type { Session, User } from "next-auth";

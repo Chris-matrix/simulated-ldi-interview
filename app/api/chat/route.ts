@@ -105,16 +105,21 @@ export async function POST(req: Request) {
     }
     else if (type === 'interview_chat') {
       // Handle interview chat
-      const { message, history = [] } = requestData;
+      const { message, history = [], profession = 'Software Engineer' } = requestData;
+      
+      // Add context about the profession to the prompt
+      const professionContext = `You are conducting an interview for a ${profession} position. ` +
+        `Your responses should be relevant to this profession and help assess the candidate's qualifications.`;
       
       if (history && history.length > 0) {
         const formattedHistory = history
           .map((msg: any) => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`)
           .join('\n\n');
         
-        userPrompt = `Previous conversation:\n${formattedHistory}\n\nUser: ${message}`;
+        userPrompt = `${professionContext}\n\nPrevious conversation:\n${formattedHistory}\n\nUser: ${message}`;
       } else {
-        userPrompt = message;
+        // For first message, include the profession context
+        userPrompt = `${professionContext}\n\n${message}`;
       }
     }
 
@@ -137,8 +142,8 @@ export async function POST(req: Request) {
       // For profile generation, try to ensure we have valid JSON
       try {
         // Check if the response is already valid JSON
-        JSON.parse(fullResponse);
-        return NextResponse.json({ response: fullResponse });
+        const parsedResponse = JSON.parse(fullResponse);
+        return NextResponse.json(parsedResponse);
       } catch (e) {
         // If not valid JSON, try to extract JSON from the text
         console.log('Attempting to extract JSON from response');
@@ -151,15 +156,19 @@ export async function POST(req: Request) {
           const extractedJson = jsonMatch[1].trim();
           try {
             // Validate the extracted JSON
-            JSON.parse(extractedJson);
-            return NextResponse.json({ response: extractedJson });
+            const parsedJson = JSON.parse(extractedJson);
+            return NextResponse.json(parsedJson);
           } catch (e) {
             console.error('Failed to parse extracted JSON', e);
           }
         }
         
-        // If we couldn't extract valid JSON, return the full response
-        return NextResponse.json({ response: fullResponse || "No response received." });
+        // If we couldn't extract valid JSON, return a proper error
+        console.error('Invalid JSON response from API:', fullResponse);
+        return NextResponse.json(
+          { error: 'Failed to generate profile. Please try again.' },
+          { status: 500 }
+        );
       }
     } else {
       return NextResponse.json({ response: fullResponse || "No response received." });

@@ -38,6 +38,7 @@ export default function HowItWorks() {
               <div className="flex items-center space-x-2">
                 <FileText className="h-6 w-6 text-gray-600 dark:text-gray-300" />
                 <CardTitle className="text-gray-900 dark:text-white">2. AI-Generated Responses</CardTitle>
+
               </div>
               <CardDescription className="text-gray-600 dark:text-gray-300">Get authentic career insights</CardDescription>
             </CardHeader>
@@ -83,14 +84,20 @@ export default function HowItWorks() {
 
         <div className="flex justify-between items-center mt-8">
           <Link href="/">
-            <Button variant="outline" className="text-gray-900 dark:text-white">
+            <Button 
+              variant="outline" 
+              className="border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Home
             </Button>
           </Link>
 
           <Link href="/select-profession">
-            <Button size="lg" className="text-white">
+            <Button 
+              size="lg" 
+              className="bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-700 dark:hover:bg-blue-800"
+            >
               Start an Interview
             </Button>
           </Link>

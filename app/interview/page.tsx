@@ -41,16 +41,7 @@ export default function Interview() {
     currentMessage: ''
   });
 
-  const { 
-    transcript, 
-    userInput, 
-    interviewStarted, 
-    interviewEnded, 
-    intervieweeInfo, 
-    error, 
-    isGeneratingResponse, 
-    currentMessage 
-  } = state;
+  const { transcript } = state;
 
   // Helper function to update state
   const updateState = useCallback((partialState: Partial<InterviewState>) => {
@@ -70,15 +61,7 @@ export default function Interview() {
     }));
   }, []);
 
-  // Helper function to update an existing message
-  const updateMessage = useCallback((index: number, updates: Partial<Message>) => {
-    setState(prev => ({
-      ...prev,
-      transcript: prev.transcript.map((msg, i) => 
-        i === index ? { ...msg, ...updates } : msg
-      )
-    }));
-  }, []);
+
 
   // Helper function to render messages
   const renderMessage = useCallback((message: Message, index: number) => {
@@ -455,17 +438,7 @@ Format as JSON with these fields:
     }
   }
 
-  // Helper function to process chunks from the stream
-  const extractDeltaFromLine = useCallback((line: string): string => {
-    if (!line.startsWith("data:")) return "";
-    try {
-      const json = JSON.parse(line.replace("data: ", ""));
-      return json?.delta ?? "";
-    } catch (error) {
-      console.error("Error parsing delta line:", error);
-      return "";
-    }
-  }, []);
+
   
   // Scroll to bottom when new messages are added
   useEffect(() => {
@@ -492,14 +465,51 @@ Format as JSON with these fields:
         isGeneratingResponse: true
       });
       
-      setTimeout(() => {
-        addMessage({
+      try {
+        // Get the profession from URL params or state
+        const profession = searchParams?.get("profession") || 'Software Engineer';
+        
+        // Call the API to get AI response with profession context
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            type: 'interview_chat',
+            message: content.trim(),
+            history: transcript,
+            profession: profession // Include profession in the request
+          }), // Close JSON.stringify and add comma
+        });
+        
+        if (!response.ok) {
+          throw new Error(`API request failed with status ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // Add AI response to transcript
+        if (data.response) {
+          await addMessage({
+            role: 'assistant',
+            content: data.response,
+            isTyping: false
+          });
+        } else {
+          throw new Error('No response from AI');
+        }
+      } catch (error) {
+        console.error('Error getting AI response:', error);
+        // Fallback message if API call fails
+        await addMessage({
           role: 'assistant',
-          content: 'Thank you for your message. This is a simulated response.',
+          content: 'I apologize, but I encountered an error generating a response. Please try again.',
           isTyping: false
         });
+      } finally {
         updateState({ isGeneratingResponse: false });
-      }, 1000);
+      }
     } catch (error) {
       console.error('Error sending message:', error);
       updateState({ 
