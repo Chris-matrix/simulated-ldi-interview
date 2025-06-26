@@ -12,17 +12,18 @@ import Loading from '@/components/loading';
 function LoginFormContent() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams?.get('callbackUrl') || '/home';
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
 
   useEffect(() => {
-    if (session) {
+    // If already authenticated, redirect to callbackUrl or home
+    if (status === 'authenticated') {
       router.push(callbackUrl);
     }
-  }, [session, callbackUrl, router]);
+  }, [status, callbackUrl, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,14 +36,17 @@ function LoginFormContent() {
       const result = await signIn('credentials', {
         redirect: false,
         password,
-        callbackUrl: callbackUrl || '/home',  // Ensure we have a fallback
+        callbackUrl,
       });
 
       if (result?.error) {
         setError('Invalid password. Please try again.');
+      } else if (result?.url) {
+        // Use router.push instead of window.location for SPA navigation
+        router.push(result.url);
       } else {
-        // Use the URL from the result for redirection
-        window.location.href = result?.url || '/home';
+        // Fallback in case result.url is not available
+        router.push(callbackUrl);
       }
     } catch (error) {
       console.error('Login error:', error);

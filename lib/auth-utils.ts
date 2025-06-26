@@ -1,35 +1,18 @@
 import { auth } from "@/auth";
-import type { DefaultSession } from "next-auth";
+import type { UserRole } from "@/types/next-auth";
 
-export type UserRole = "USER" | "ADMIN";
+// Re-export the User type for consistency
+export type { UserRole };
 
-// Define the user type
-export interface User {
-  id: string;
+// Use the types from next-auth instead of redefining them
+import type { User, Session } from "next-auth";
+
+export interface ExtendedUser extends User {
   role: UserRole;
-  name?: string | null;
-  email?: string | null;
-  image?: string | null;
 }
 
-// Define the session type
-export interface Session {
-  user: User;
-  expires: string;
-}
-
-// Extend the default session types
-declare module "next-auth" {
-  interface Session {
-    user: {
-      id: string;
-      role: UserRole;
-    } & DefaultSession["user"];
-  }
-  
-  interface User {
-    role: UserRole;
-  }
+export interface ExtendedSession extends Session {
+  user: ExtendedUser;
 }
 
 /**
@@ -37,14 +20,14 @@ declare module "next-auth" {
  */
 export async function getServerSession() {
   const session = await auth();
-  return session as Session | null;
+  return session as ExtendedSession | null;
 }
 
 /**
  * Require authentication for API routes
  * Returns the session if authenticated, otherwise throws an error
  */
-export async function requireAuth(): Promise<{ user: User }> {
+export async function requireAuth(): Promise<{ user: ExtendedUser }> {
   const session = await getServerSession();
   
   if (!session) {
@@ -58,7 +41,7 @@ export async function requireAuth(): Promise<{ user: User }> {
  * Require admin role for API routes
  * Returns the user if admin, otherwise throws an error
  */
-export async function requireAdmin(): Promise<{ user: User }> {
+export async function requireAdmin(): Promise<{ user: ExtendedUser }> {
   const { user } = await requireAuth();
 
   if (user.role !== "ADMIN") {
@@ -72,7 +55,7 @@ export async function requireAdmin(): Promise<{ user: User }> {
  * Get the current user from the session
  * For use in React components
  */
-export async function getCurrentUser(): Promise<User | null> {
+export async function getCurrentUser(): Promise<ExtendedUser | null> {
   try {
     const session = await getServerSession();
     return session?.user || null;

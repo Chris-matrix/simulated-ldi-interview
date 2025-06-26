@@ -19,6 +19,12 @@ const adminPaths = [
   '/api/admin',
 ];
 
+// Paths that should be accessible to authenticated users only
+const protectedPaths = [
+  '/home',
+  '/api/protected',
+];
+
 // Auth paths that should redirect to home if already authenticated
 const authPaths = [
   '/login',
@@ -29,11 +35,7 @@ const authPaths = [
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
-  // Skip middleware for public paths
-  if (isPathMatch(pathname, publicPaths)) {
-    return NextResponse.next();
-  }
-
+  // Get the session token
   const token = await getToken({ 
     req: request,
     secret: process.env.NEXTAUTH_SECRET,
@@ -41,21 +43,35 @@ export async function middleware(request: NextRequest) {
   
   const isAuthenticated = !!token;
   const userRole = token?.role as string | undefined;
+  const isAdmin = userRole === 'ADMIN';
 
-  // Handle authentication
-  if (!isAuthenticated) {
-    // If not authenticated and trying to access protected route, redirect to login
-    return redirectToLogin(request, pathname);
+  // Skip middleware for public paths
+  if (isPathMatch(pathname, publicPaths)) {
+    return NextResponse.next();
   }
 
-  // Handle authenticated users trying to access auth pages
+  // Redirect authenticated users away from auth pages
   if (isPathMatch(pathname, authPaths)) {
-    return NextResponse.redirect(new URL('/home', request.url));
+    if (isAuthenticated) {
+      return NextResponse.redirect(new URL('/home', request.url));
+    }
+    return NextResponse.next();
   }
 
-  // Check admin access for admin routes
-  if (isPathMatch(pathname, adminPaths) && userRole !== 'ADMIN') {
-    return NextResponse.redirect(new URL('/unauthorized', request.url));
+  // Check for admin access
+  if (isPathMatch(pathname, adminPaths)) {
+    if (!isAuthenticated) {
+      return redirectToLogin(request, pathname);
+    }
+    if (!isAdmin) {
+      return NextResponse.redirect(new URL('/unauthorized', request.url));
+    }
+    return NextResponse.next();
+  }
+
+  // Protected routes - require authentication
+  if (isPathMatch(pathname, protectedPaths) && !isAuthenticated) {
+    return redirectToLogin(request, pathname);
   }
 
   // Add security headers to all responses
