@@ -1,77 +1,16 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { getToken } from 'next-auth/jwt';
 
-// Public paths that don't require authentication
-const publicPaths = [
-  '/',
-  '/login',
-  '/api/auth',
-  '/_next',
-  '/favicon.ico',
-  '/images',
-  '/fonts',
-];
-
-// Admin paths that require admin role
-const adminPaths = [
-  '/admin',
-  '/api/admin',
-];
-
-// Paths that should be accessible to authenticated users only
-const protectedPaths = [
-  '/home',
-  '/api/protected',
-];
-
-// Auth paths that should redirect to home if already authenticated
-const authPaths = [
-  '/login',
-  '/register',
-  '/forgot-password',
-];
-
-export async function middleware(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  
-  // Get the session token
-  const token = await getToken({ 
-    req: request,
-    secret: process.env.NEXTAUTH_SECRET,
-  });
-  
-  const isAuthenticated = !!token;
-  const userRole = token?.role as string | undefined;
-  const isAdmin = userRole === 'ADMIN';
 
-  // Skip middleware for public paths
-  if (isPathMatch(pathname, publicPaths)) {
-    return NextResponse.next();
-  }
-
-  // Redirect authenticated users away from auth pages
-  if (isPathMatch(pathname, authPaths)) {
-    if (isAuthenticated) {
-      return NextResponse.redirect(new URL('/home', request.url));
-    }
-    return NextResponse.next();
-  }
-
-  // Check for admin access
-  if (isPathMatch(pathname, adminPaths)) {
-    if (!isAuthenticated) {
-      return redirectToLogin(request, pathname);
-    }
-    if (!isAdmin) {
-      return NextResponse.redirect(new URL('/unauthorized', request.url));
-    }
-    return NextResponse.next();
-  }
-
-  // Protected routes - require authentication
-  if (isPathMatch(pathname, protectedPaths) && !isAuthenticated) {
-    return redirectToLogin(request, pathname);
+  // Set CORS headers for API routes
+  if (pathname.startsWith('/api/')) {
+    const response = NextResponse.next();
+    response.headers.set('Access-Control-Allow-Origin', '*');
+    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    return response;
   }
 
   // Add security headers to all responses
@@ -97,29 +36,9 @@ export async function middleware(request: NextRequest) {
   return response;
 }
 
-// Helper function to check if path matches any in the list
-function isPathMatch(pathname: string, paths: string[]): boolean {
-  return paths.some(path => 
-    pathname === path || 
-    pathname.startsWith(`${path}/`)
-  );
-}
-
-// Helper function to redirect to login with callback URL
-function redirectToLogin(request: NextRequest, pathname: string): NextResponse {
-  const loginUrl = new URL('/login', request.url);
-  
-  // Only add callbackUrl if it's not the login page and not an API route
-  if (!pathname.startsWith('/login') && !pathname.startsWith('/api/')) {
-    loginUrl.searchParams.set('callbackUrl', pathname);
-  }
-  
-  return NextResponse.redirect(loginUrl);
-}
-
 export const config = {
-  // Match all paths except static files and API routes
+  // Match all paths except static files
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|api/auth).*)',
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 };

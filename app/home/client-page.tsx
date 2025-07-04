@@ -1,26 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-
-export default function ClientHomePage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login');
-    }
-  }, [status, router]);
-
-  if (status === 'loading' || !session) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse">Loading...</div>
+export default function HomePage() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <h1 className="text-4xl font-bold mb-4">Welcome to Interview Simulator</h1>
+        <p className="text-xl text-gray-600">Practice your interview skills with our AI-powered platform</p>
       </div>
-    );
-  }
-
-  return null; // The actual content is rendered by the server component
-}
+    </div>
+  );
+ }
