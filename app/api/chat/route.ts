@@ -1,42 +1,85 @@
 import { NextResponse } from "next/server";
 
-async function createConversation(BASE_URL: string, PROJECT_ID: string, API_KEY: string) {
-  const res = await fetch(`${BASE_URL}/projects/${PROJECT_ID}/conversations`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({}),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    console.error("Conversation creation failed:", text);
-    return null;
-  }
-  const { conversation } = await res.json();
-  return conversation;
+// Fallback responses when the API is not available
+function getFallbackResponse() {
+  const responses = [
+    "I'm having trouble connecting to the AI service. Let's try that again.",
+    "I apologize, but I'm having some technical difficulties. Could you rephrase your question?",
+    "I'm unable to process your request at the moment. Please try again in a moment.",
+    "It seems there's an issue with the AI service. Let's try a different approach.",
+    "I'm having trouble understanding right now. Could you provide more details?"
+  ];
+  return responses[Math.floor(Math.random() * responses.length)];
 }
 
-async function sendMessage(BASE_URL: string, PROJECT_ID: string, API_KEY: string, conversationId: string, userPrompt: string) {
-  const res = await fetch(`${BASE_URL}/projects/${PROJECT_ID}/conversations/${conversationId}/messages`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      input: {
-        message: userPrompt,
+async function createConversation(BASE_URL: string, PROJECT_ID: string, API_KEY: string) {
+  try {
+    const res = await fetch(`${BASE_URL}/projects/${PROJECT_ID}/conversations`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${API_KEY}`,
+        "Content-Type": "application/json",
       },
-    }),
-  });
-  if (!res.ok || !res.body) {
-    const text = await res.text();
-    console.error("Message sending failed:", text);
+      body: JSON.stringify({}),
+    });
+    
+    if (!res.ok) {
+      const text = await res.text();
+      console.error("Conversation creation failed:", res.status, text);
+      return null;
+    }
+    
+    const data = await res.json();
+    return data.conversation || null;
+  } catch (error) {
+    console.error("Error in createConversation:", error);
     return null;
   }
-  return res.body;
+}
+
+type SendMessageResult = {
+  body?: ReadableStream<Uint8Array>;
+  error?: string;
+  message?: string;
+};
+
+async function sendMessage(BASE_URL: string, PROJECT_ID: string, API_KEY: string, conversationId: string, userPrompt: string): Promise<SendMessageResult> {
+  try {
+    const res = await fetch(`${BASE_URL}/projects/${PROJECT_ID}/conversations/${conversationId}/messages`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        input: {
+          message: userPrompt,
+        },
+      }),
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      console.error("Message sending failed:", res.status, text);
+      return { error: "Message sending failed", message: text };
+    }
+    
+    if (!res.body) {
+      return { 
+        body: new ReadableStream(),
+        error: "No response body received" 
+      };
+    }
+    
+    return { body: res.body };
+  } catch (error: any) {
+    console.error("Error in sendMessage:", error);
+    return { 
+      error: "Error sending message", 
+      message: error.message || "Unknown error occurred",
+      body: undefined
+    };
+  }
 }
 
 function extractDeltaFromLine(line: string): string {
@@ -124,13 +167,17 @@ export async function POST(req: Request) {
     }
 
     // Step 2: Send message (expect streaming response)
-    const messageBody = await sendMessage(BASE_URL, PROJECT_ID, API_KEY, conversation.id, userPrompt);
-    if (!messageBody) {
-      return NextResponse.json({ error: "Could not send message." }, { status: 500 });
+    const messageResult = await sendMessage(BASE_URL, PROJECT_ID, API_KEY, conversation.id, userPrompt);
+    if (messageResult.error || !messageResult.body) {
+      console.error("Error sending message:", messageResult.error || "No response body");
+      return NextResponse.json({ 
+        error: messageResult.error || "Could not send message",
+        message: messageResult.message
+      }, { status: 500 });
     }
 
     // Step 3: Read the SSE stream
-    const fullResponse = await readSSEStream(messageBody);
+    const fullResponse = await readSSEStream(messageResult.body);
     
     // Add debug logging
     console.log('Raw API response:', fullResponse?.substring(0, 200) + '...');
@@ -175,6 +222,14 @@ export async function POST(req: Request) {
     }
   } catch (error: any) {
     console.error("API route error:", error);
-    return NextResponse.json({ error: error.message || "An error occurred" }, { status: 500 });
+    // Return a more helpful error message
+    const errorMessage = error.message.includes('fetch failed') 
+      ? 'Failed to connect to the AI service. Please check your internet connection and try again.'
+      : error.message || 'An error occurred while processing your request.';
+      
+    return NextResponse.json({ 
+      error: errorMessage,
+      response: getFallbackResponse()
+    }, { status: 500 });
   }
 }

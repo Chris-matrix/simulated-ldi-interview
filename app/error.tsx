@@ -2,50 +2,34 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
 
-export default function Error({
-  error,
-  reset,
-}: {
-  error: Error & { digest?: string };
-  reset: () => void;
-}) {
+export default function Error({ error, reset }) {
   const router = useRouter();
 
   useEffect(() => {
     // Log the error to an error reporting service
-    console.error('Error caught by error boundary:', error);
   }, [error]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <div className="max-w-md w-full space-y-6 p-8 bg-white rounded-xl shadow-md text-center">
-        <div className="space-y-2">
-          <h1 className="text-6xl font-bold text-red-600">500</h1>
-          <h2 className="text-2xl font-semibold text-gray-900">Something went wrong!</h2>
-          <p className="text-gray-600">
-            We apologize for the inconvenience. An unexpected error has occurred.
-          </p>
-          <p className="text-sm text-gray-500 mt-2">
-            {error.message || 'An unknown error occurred'}
-          </p>
-        </div>
-        
-        <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-          <Button
-            onClick={() => reset()}
-            variant="outline"
-            className="w-full sm:w-auto"
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+      <div className="bg-white p-8 rounded-lg shadow-md max-w-2xl w-full">
+        <h2 className="text-2xl font-bold text-red-600 mb-4">Something went wrong!</h2>
+        <p className="text-gray-700 mb-6">
+          {error?.message || 'An unexpected error occurred. Please try again later.'}
+        </p>
+        <div className="flex flex-col sm:flex-row gap-4">
+          <button
+            onClick={() => reset?.()}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
           >
-            Try Again
-          </Button>
-          <Button
-            onClick={() => router.push('/home')}
-            className="w-full sm:w-auto"
+            Try again
+          </button>
+          <button
+            onClick={() => router.push('/')}
+            className="border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium py-2 px-4 rounded-md transition-colors"
           >
-            Go to Home
-          </Button>
+            Go to home
+          </button>
         </div>
       </div>
     </div>

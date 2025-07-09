@@ -1,39 +1,31 @@
 'use client';
 
-import { Inter } from 'next/font/google';
-import { ThemeProvider } from '@/components/theme-provider';
-import { Toaster } from '@/components/ui/sonner';
-import MainNav from '@/components/main-nav';
-import ErrorBoundary from '@/components/error-boundary';
+import dynamic from 'next/dynamic';
 
-const inter = Inter({ subsets: ['latin'], display: 'swap' });
+// @ts-ignore
+const inter = { className: 'font-sans' };
 
-export default function ClientLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+// Dynamically import MainNav to avoid SSR issues with browser APIs
+const MainNav = dynamic(() => import('@/components/main-nav'), { ssr: false });
+
+// @ts-ignore
+export default function ClientLayout({ children }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} min-h-screen bg-background font-sans antialiased`}>
-        <ErrorBoundary showNavigation>
-          <ThemeProvider>
-              <div className="flex min-h-screen flex-col">
-                <header className="border-b bg-background sticky top-0 z-50">
-                  <div className="container flex h-16 items-center justify-between px-4">
-                    <a href="/" className="text-lg font-semibold">
-                      Interview Simulator
-                    </a>
-                    <MainNav />
-                  </div>
-                </header>
-                <main className="flex-1">
-                  {children}
-                </main>
-                <Toaster position="top-center" />
-              </div>
-            </ThemeProvider>
-        </ErrorBoundary>
+    <html lang="en" className={inter.className}>
+      <body className="min-h-screen bg-background">
+        <div className="flex min-h-screen flex-col">
+          <header className="sticky top-0 z-50 border-b bg-background">
+            <div className="container flex h-16 items-center justify-between px-4">
+              <a href="/" className="text-lg font-semibold">
+                Interview Simulator
+              </a>
+              <MainNav />
+            </div>
+          </header>
+          <main className="flex-1">
+            {children}
+          </main>
+        </div>
       </body>
     </html>
   );
