@@ -1,18 +1,9 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Search } from 'lucide-react';
 
-interface Profession {
-  id: string;
-  name: string;
-  category: string;
-  description: string;
-  avgSalary?: string;
-  education?: string;
-}
-
-const PROFESSIONS: Profession[] = [
+// Define profession data directly
+const PROFESSIONS = [
   // Technology
   { id: 'software-engineer', name: 'Software Engineer', category: 'Technology', description: 'Design and develop software applications and systems.', avgSalary: '$110,000', education: "Bachelor's" },
   { id: 'data-scientist', name: 'Data Scientist', category: 'Technology', description: 'Analyze and interpret complex data to help organizations make decisions.', avgSalary: '$120,000', education: "Master's" },
@@ -35,155 +26,249 @@ const PROFESSIONS: Profession[] = [
   { id: 'plumber', name: 'Plumber', category: 'Trades', description: 'Install and repair pipes and fixtures for water and drainage.', avgSalary: '$56,000', education: 'Apprenticeship' },
 ];
 
-const CATEGORIES = ['All', ...new Set(PROFESSIONS.map(p => p.category))];
+// Categories
+const ALL_CATEGORIES = ['All', 'Technology', 'Healthcare', 'Business', 'Creative', 'Trades'];
+
+// Default profession object - not used, so removing to clean up
 
 export default function ProfessionsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [selectedProfession, setSelectedProfession] = useState<Profession | null>(null);
+  const [selectedProfession, setSelectedProfession] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [viewMode, setViewMode] = useState('toggle'); // Default to toggle view
 
+  // Get all unique profession names and categories for the toggle view
+  const allProfessions = useMemo(() => {
+    // Group by category
+    const byCategory = {};
+    PROFESSIONS.forEach(prof => {
+      if (!byCategory[prof.category]) {
+        byCategory[prof.category] = [];
+      }
+      byCategory[prof.category].push(prof);
+    });
+    
+    // Sort categories
+    const sortedCategories = Object.keys(byCategory).sort();
+    
+    // Sort professions within each category
+    sortedCategories.forEach(category => {
+      byCategory[category].sort((a, b) => a.name.localeCompare(b.name));
+    });
+    
+    return { byCategory, categories: sortedCategories };
+  }, []);
+
+  // Filter professions based on search term and category
   const filteredProfessions = useMemo(() => {
     return PROFESSIONS.filter(profession => {
-      const matchesSearch = profession.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         profession.description.toLowerCase().includes(searchTerm.toLowerCase());
+      const searchLower = searchTerm.toLowerCase();
+      const matchesSearch = profession.name.toLowerCase().includes(searchLower) ||
+                         profession.description.toLowerCase().includes(searchLower);
       const matchesCategory = selectedCategory === 'All' || profession.category === selectedCategory;
       return matchesSearch && matchesCategory;
     });
   }, [searchTerm, selectedCategory]);
 
-  return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-12">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Find Your Career Path</h1>
-          <p className="text-lg text-gray-600">Explore different professions and find the perfect match for your skills</p>
-        </div>
+  // Handle profession selection
+  const handleProfessionSelect = (profession) => {
+    setSelectedProfession(profession);
+    setIsModalOpen(true);
+  };
+  
+  // Toggle between search and toggle views
+  const toggleViewMode = () => {
+    setViewMode(prev => prev === 'search' ? 'toggle' : 'search');
+    setSearchTerm('');
+    setSelectedCategory('All');
+  };
 
-        {/* Search and Filter */}
-        <div className="bg-white rounded-lg shadow p-6 mb-8">
-          <div className="relative mb-6">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-gray-400" />
-            </div>
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">Explore Professions</h1>
+        <button
+          onClick={toggleViewMode}
+          className="px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+        >
+          {viewMode === 'search' ? 'View as List' : 'View with Search'}
+        </button>
+      </div>
+      
+      {/* Search and Filter */}
+      <div className="mb-8">
+        {viewMode === 'search' ? (
+        <>
+          <div className="relative mb-4">
             <input
               type="text"
-              className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
               placeholder="Search professions..."
+              className="w-full p-2 pl-4 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-
-          <div className="flex flex-wrap gap-2 mb-6">
-            {CATEGORIES.map(category => (
+          
+          <div className="flex flex-wrap gap-2 mb-4">
+            {ALL_CATEGORIES.map((category) => (
               <button
                 key={category}
-                onClick={() => setSelectedCategory(category)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                className={`px-4 py-2 rounded-full text-sm font-medium ${
                   selectedCategory === category
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
+                onClick={() => setSelectedCategory(category)}
               >
                 {category}
               </button>
             ))}
           </div>
-        </div>
 
-        {/* Professions Grid */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filteredProfessions.map((profession) => (
-            <div
-              key={profession.id}
-              className="bg-white rounded-lg shadow overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => setSelectedProfession(profession)}
-            >
-              <div className="p-6">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">{profession.name}</h3>
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mt-1">
-                      {profession.category}
-                    </span>
-                  </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredProfessions.map((prof) => (
+              <div
+                key={prof.id}
+                className="border rounded-lg p-6 hover:shadow-lg transition-shadow cursor-pointer"
+                onClick={() => handleProfessionSelect(prof)}
+              >
+                <h3 className="text-xl font-semibold mb-2">{prof.name}</h3>
+                <span className="inline-block px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full mb-3">
+                  {prof.category}
+                </span>
+                <p className="text-gray-600 mb-4">{prof.description}</p>
+                <div className="flex justify-between text-sm text-gray-500">
+                  <span>Avg. Salary: {prof.avgSalary}</span>
+                  <span>Education: {prof.education}</span>
                 </div>
-                <p className="mt-3 text-sm text-gray-600 line-clamp-3">{profession.description}</p>
-                <div className="mt-4 flex items-center text-sm text-gray-500">
-                  <span>💰 {profession.avgSalary}</span>
-                  <span className="mx-2">•</span>
-                  <span>🎓 {profession.education}</span>
-                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      ) : (
+        <div className="space-y-6">
+          {allProfessions.categories.map((category) => (
+            <div key={category} className="mb-6">
+              <h2 className="text-lg font-medium mb-3">{category}</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
+                {allProfessions.byCategory[category].map((prof) => (
+                  <button
+                    key={prof.id}
+                    onClick={() => handleProfessionSelect(prof)}
+                    className={`p-3 text-left rounded-lg border transition-colors ${
+                      selectedProfession?.id === prof.id
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="font-medium">{prof.name}</div>
+                    <div className="text-sm text-gray-500">
+                      {prof.avgSalary} • {prof.education}
+                    </div>
+                  </button>
+                ))}
               </div>
             </div>
           ))}
         </div>
-
-        {filteredProfessions.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500">No professions found matching your search.</p>
-          </div>
-        )}
-
-        {/* Profession Detail Modal */}
-        {selectedProfession && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="p-6">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900">{selectedProfession.name}</h2>
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mt-2">
-                      {selectedProfession.category}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => setSelectedProfession(null)}
-                    className="text-gray-400 hover:text-gray-500"
-                  >
-                    <span className="sr-only">Close</span>
-                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
+      )}  
+      </div>
+      
+      {/* Profession Grid */}
+      {viewMode === 'search' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredProfessions.map((profession) => (
+            <div
+              key={profession.id}
+              className="border rounded-lg p-6 hover:shadow-lg transition-shadow cursor-pointer"
+              onClick={() => handleProfessionSelect(profession)}
+            >
+              <h3 className="text-xl font-semibold mb-2">{profession.name}</h3>
+              <span className="inline-block px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full mb-3">
+                {profession.category}
+              </span>
+              <p className="text-gray-600 mb-4">{profession.description}</p>
+              <div className="flex justify-between text-sm text-gray-500">
+                <span>Avg. Salary: {profession.avgSalary}</span>
+                <span>Education: {profession.education}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      
+      {/* Empty State */}
+      {viewMode === 'search' && filteredProfessions.length === 0 && (
+        <div className="text-center py-12">
+          <p className="text-gray-500">No professions found matching your criteria.</p>
+        </div>
+      )}
+      
+      {/* Profession Detail Modal */}
+      {isModalOpen && selectedProfession && selectedProfession.name && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h2 className="text-2xl font-bold">{selectedProfession.name}</h2>
+                  <span className="inline-block px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full mt-2">
+                    {selectedProfession.category}
+                  </span>
                 </div>
-
-                <div className="mt-6 space-y-4">
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-semibold">Description</h3>
+                  <p className="text-gray-700">{selectedProfession.description}</p>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900">Overview</h3>
-                    <p className="mt-2 text-gray-600">{selectedProfession.description}</p>
+                    <h4 className="font-medium text-gray-500">Average Salary</h4>
+                    <p>{selectedProfession.avgSalary || 'N/A'}</p>
                   </div>
-
-                  <div className="grid grid-cols-2 gap-4 mt-6">
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-500">Average Salary</h4>
-                      <p className="mt-1 text-lg font-medium text-gray-900">{selectedProfession.avgSalary}</p>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-500">Education Required</h4>
-                      <p className="mt-1 text-lg font-medium text-gray-900">{selectedProfession.education}</p>
-                    </div>
+                  <div>
+                    <h4 className="font-medium text-gray-500">Education Required</h4>
+                    <p>{selectedProfession.education || 'Varies'}</p>
                   </div>
-
-                  <div className="pt-6 mt-6 border-t border-gray-200">
-                    <button
-                      type="button"
-                      className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                      onClick={() => {
-                        // Handle start interview or save selection
-                        alert(`Starting interview preparation for ${selectedProfession.name}`);
-                        setSelectedProfession(null);
-                      }}
-                    >
-                      Start Interview Preparation
-                    </button>
-                  </div>
+                </div>
+                
+                <div className="pt-4 border-t">
+                  <button
+                    className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+                    onClick={() => {
+                      // Handle start interview action
+                    }}
+                  >
+                    Start Practice Interview
+                  </button>
                 </div>
               </div>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

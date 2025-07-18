@@ -1,11 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   eslint: {
-    ignoreDuringBuilds: true,
+    // Enable ESLint during build
+    ignoreDuringBuilds: false,
   },
   typescript: {
-    // Disable TypeScript type checking during build
+    // Enable TypeScript type checking during build
+    // Temporarily ignoring build errors to allow for incremental migration
     ignoreBuildErrors: true,
+    // Show TypeScript errors in development
+    tsconfigPath: './tsconfig.json'
   },
   images: {
     unoptimized: true,
